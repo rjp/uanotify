@@ -1,0 +1,24 @@
+{
+  "name": "uanotify",
+  "description": "A UA notifying bot",
+  "version": "0.0.1",
+  "keywords": [ "ua", "node", "notifo", "redis-client", "uanotify" ],
+  "author": "rjp <rjpartington@googlemail.com>",
+  "contributors": [
+    { "name": "rjp", "web": "http://pi.st/rjp/" }
+  ],
+  "licenses": [ "GPL" ],
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/rjp/uanotify.git"
+  },
+  "bugs": { "web": "http://github.com/rjp/uanotify/issues" },
+  "directories": { "lib": "./lib", "test": "./test" },
+  "os": [ "linux", "darwin" ],
+  "dependencies": {
+      "redis": ">=0.0.0",
+      "connect": ">=0.0.0"
+  },
+  "engines": { "node":  ">=0.2.0" },
+  "main": "./bot.js"
+}
