@@ -21,10 +21,6 @@ function output_message(req, res, x) {
     a = JSON.parse(x);
     res.writeHead(200, { 'Content-Type': 'text/html' });
 
-//    sys.puts(x);
-    sys.puts(sys.inspect(a));
-    sys.puts(a.message);
-
     d = new Date(a.m_date * 1000);
     b = d.toLocaleString();
     c = b.substr(16,5) +', '+ b.substr(0,3) +' '+ b.substr(8,2) +'/' + ('00'+(1+d.getMonth())).substr(-2);
@@ -37,20 +33,35 @@ function output_message(req, res, x) {
     });
 }
 
+function buffer_to_strings(x) {
+    for(i in x) {
+        x[i] = x[i].toString('utf8');
+    }
+    return x;
+}
+
 function output_links(req, res, x) {
     // convert our array of buffers to the JSON strings
     buffer_to_strings(x);
     // we're returning HTML, let's tell the browser that
     res.writeHead(200, { 'Content-Type': 'text/html' });
-    // for each message, we output a link
+
+    var posts = [];
     for(i in x) {
         m = JSON.parse(x[i]);
-        sys.puts(x[i]);
-        title = m.m_subject;
-        res.write('<a href="/m/'+m.link+'">'+title+'</a><br/>');
+	    d = new Date(m.m_date * 1000);
+	    b = d.toLocaleString();
+	    c = b.substr(16,5) +', '+ b.substr(0,3) +' '+ b.substr(8,2) +'/' + ('00'+(1+d.getMonth())).substr(-2);
+        m.nicedate = c;
+        posts.push(m);
     }
-    // and send
-    res.end('<em>FISH</em>');
+    sys.puts(sys.inspect(posts[0]));
+
+    jade.renderFile('list.html', { locals: { posts: posts } },
+        function(err, html){ 
+        sys.puts(err);
+        res.end(html); 
+    });
 }
 
 function app(app) {
