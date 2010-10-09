@@ -15,7 +15,7 @@ var unikey = [safe_username, process.pid, token].join(':');
 var nextid = [unikey, 'nextid'].join(':');
 var list = [unikey, 'list', ''].join(':');
 
-
+// start a new list to avoid collisions / race conditions
 function new_list() {
     sys.puts("incrementing "+nextid);
     r.incr(nextid, function(err, id) {
@@ -25,9 +25,19 @@ function new_list() {
     });
 }
 
+function buffer_to_strings(x) {
+    for(i in x) {
+        x[i] = x[i].toString('utf8');
+    }
+    return x;
+}
+
 function notify_list(e, x) {
-    json = x.toString('utf8');
-    sys.puts("OLD LIST\n"+json);
+    buffer_to_strings(x);
+    for(i in x) {
+        item = JSON.parse(x[i]);
+        sys.puts(sys.inspect(item));
+    }
     new_list();
 }
 
@@ -46,9 +56,8 @@ notifybot.id = 0
 
 function reply_message_list(a) {
     x = notifybot.getChild(a, 'message');
-    sys.puts("MTEXT = "+x.text);
     notifybot.flatten(a);
-    sys.puts(sys.inspect(a));
+    sys.puts(JSON.stringify(a));
     r.rpush(list+notifybot.id, JSON.stringify(a), function(){});
 }
 
@@ -62,6 +71,5 @@ notifybot.addListener("reply_message_list", reply_message_list);
 
 sys.puts("setting "+nextid+" to 0 and starting our count there");
 r.set(nextid, 0);
-setInterval(periodic, 1*60*1000);
-notifybot.connect(process.argv[2], process.argv[3]);
-
+setInterval(periodic, 3*60*1000);
+notifybot.connect(process.argv[2], process.argv[3], 'ipz.frottage.org', 8080);
