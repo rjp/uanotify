@@ -3,8 +3,8 @@ html(lang="en")
     pre
       | Message: #{summary}
       | From: #{from}
-      - if (to)
-      |   To: #{to}
+      - if (to != undefined) 
+        | To: #{to}
       | Subject: #{subject}
       | 
       | #{body}
