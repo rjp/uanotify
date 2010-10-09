@@ -1,18 +1,20 @@
 html(lang="en")
   head
-    table
+    table(border=1)
       tr
         th Subject
         th From
         th To
         th Date
+        th Body
       - for (var post in posts)
-      tr
-        td
-          - var a = '/m/'+posts[post].link;
-          - var to = posts[post].m_toname;
-          - var niceto = to ? to : '';
-          a(href: a) #{posts[post].m_subject}
-        td #{posts[post].m_fromname}
-        td #{niceto}
-        td #{posts[post].nicedate}
+        tr
+          td
+            - var a = '/m/'+posts[post].link;
+            - var to = posts[post].m_toname;
+            - var niceto = to ? to : '';
+            a(href: a) #{posts[post].m_subject}
+          td #{posts[post].m_fromname}
+          td #{posts[post].to}
+          td #{posts[post].nicedate}
+          td #{posts[post].flat_text}
