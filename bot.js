@@ -28,11 +28,8 @@ var list = [unikey, 'list', ''].join(':');
 // start a new list to avoid collisions / race conditions
 function new_list() {
     sys.puts("incrementing "+nextid);
-    r.incr(nextid, function(err, id) {
-        sys.puts("err is "+err);
-        notifybot.id = id;
-        sys.puts("storing new items in "+list+id);
-    });
+    notifybot.list = Math.uuid();
+    sys.puts("storing new items in "+notifybot.list);
 }
 
 function buffer_to_strings(x) {
@@ -42,27 +39,35 @@ function buffer_to_strings(x) {
     return x;
 }
 
+function do_notify() {
+    old_list = notifybot.list
+    if (notifo_user == undefined) {
+        sys.puts('http://backup.frottage.org:9980/l/'+old_list);
+    } else {
+	    notification.send({
+	        title: 'UA New messages',
+	        to: notifo_user, // bleh, where do we get this from?
+	        msg: x.length+' new messages',
+	        uri: 'http://backup.frottage.org:9980/l/'+old_list
+	    }, function(err, response){
+	        if (err) { throw err; }
+	        else { console.log(response); }
+	    });
+    }
+}
+
 function notify_list(e, x) {
     buffer_to_strings(x);
     for(i in x) {
         item = JSON.parse(x[i]);
         sys.puts(sys.inspect(item));
     }
-    old_list = list + notifybot.id
-    notification.send({
-        title: 'UA New messages',
-        to: notifo_user, // bleh, where do we get this from?
-        msg: x.length+' new messages',
-        uri: 'http://backup.frottage.org:9980/l/'+old_list
-    }, function(err, response){
-        if (err) { throw err; }
-        else { console.log(response); }
-    });
+    do_notify();
     new_list();
 }
 
 function periodic() {
-    old_list = list + notifybot.id
+    old_list = notifybot.list;
     // if we have items, send them to notify_list
     r.llen(old_list, function(e, x) {
         if (x > 0) {
@@ -73,6 +78,7 @@ function periodic() {
 
 notifybot = new uaclient.UAClient;
 notifybot.id = 0
+notifybot.shadow = 256;
 
 function extend(v1, v2) {
     for (var property in v2) {
@@ -108,7 +114,7 @@ function reply_message_list(a) {
     link = Math.uuid();
     a.link = link;
     // TODO check this works
-    r.rpush(list+notifybot.id, JSON.stringify(a), function(){});
+    r.rpush(notifybot.list, JSON.stringify(a), function(){});
     // TODO check this works
     r.set(link, JSON.stringify(a), function(){});
 }
@@ -120,8 +126,8 @@ function announce_message_add(a) {
 
 notifybot.addListener("announce_message_add", announce_message_add);
 notifybot.addListener("reply_message_list", reply_message_list);
+notifybot.list = Math.uuid();
 
-sys.puts("setting "+nextid+" to 0 and starting our count there");
-r.set(nextid, 0);
+sys.puts("storing into "+notifybot.list);
 setInterval(periodic, 1*60*1000);
 notifybot.connect(process.argv[2], process.argv[3], 'ipz.frottage.org', 8080);
