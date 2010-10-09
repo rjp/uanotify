@@ -1,3 +1,4 @@
+var jade = require('jade');
 var sys = require('sys');
 var uaclient = require('uaclient');
 var notifo = require('notifo');
@@ -19,23 +20,21 @@ console.log('Connect server listening on port 3000');
 function output_message(req, res, x) {
     a = JSON.parse(x);
     res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.write('<pre>');
+
+//    sys.puts(x);
+    sys.puts(sys.inspect(a));
+    sys.puts(a.message);
 
     d = new Date(a.m_date * 1000);
     b = d.toLocaleString();
     c = b.substr(16,5) +', '+ b.substr(0,3) +' '+ b.substr(8,2) +'/' + ('00'+(1+d.getMonth())).substr(-2);
-    res.write('Message: '+a.foldername+'/'+a.message+' ('+a.m_msgpos+'/'+a.nummsgs+') at '+c+'\n');
-    res.write('From: '+a.m_fromname+'\n');
-    if (a.m_toname != undefined) {
-        res.write('To: '+a.m_toname+'\n');
-    }
-    res.write('Subject: '+a.m_subject+'\n');
-    res.write('\n');
-    res.write(a.m_text);
-    res.write('\n');
-    res.write('\n');
-    res.write(x);
-    res.end('</pre>');
+    summary = a.foldername+'/'+a.message+' ('+a.m_msgpos+'/'+a.nummsgs+') at '+c;
+    jade.renderFile('message.html', { locals: {
+        summary: summary, from: a.m_fromname, to: a.m_toname,
+        subject: a.m_subject, body: a.m_text
+        }}, function(err, html){
+        res.end(html);
+    });
 }
 
 function output_links(req, res, x) {

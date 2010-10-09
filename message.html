@@ -1,0 +1,10 @@
+html(lang="en")
+  head
+    pre
+      | Message: #{summary}
+      | From: #{from}
+      - if (to)
+      |   To: #{to}
+      | Subject: #{subject}
+      | 
+      | #{body}
