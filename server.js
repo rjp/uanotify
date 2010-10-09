@@ -20,13 +20,14 @@ console.log('Connect server listening on port 3000');
 function output_message(req, res, x) {
     a = JSON.parse(x);
     res.writeHead(200, { 'Content-Type': 'text/html' });
-
+    sys.puts("TO="+a.m_toname);
+    var to = a.m_toname == undefined ? undefined : a.m_toname;
     d = new Date(a.m_date * 1000);
     b = d.toLocaleString();
     c = b.substr(16,5) +', '+ b.substr(0,3) +' '+ b.substr(8,2) +'/' + ('00'+(1+d.getMonth())).substr(-2);
     summary = a.foldername+'/'+a.message+' ('+a.m_msgpos+'/'+a.nummsgs+') at '+c;
     jade.renderFile('message.html', { locals: {
-        summary: summary, from: a.m_fromname, to: a.m_toname,
+        summary: summary, from: a.m_fromname, to: to,
         subject: a.m_subject, body: a.m_text
         }}, function(err, html){
         res.end(html);
@@ -53,6 +54,11 @@ function output_links(req, res, x) {
 	    b = d.toLocaleString();
 	    c = b.substr(16,5) +', '+ b.substr(0,3) +' '+ b.substr(8,2) +'/' + ('00'+(1+d.getMonth())).substr(-2);
         m.nicedate = c;
+        m.flat_text = m.m_text.replace(/\n/g,' &sect; ');
+        if (m.flat_text.length > 60) {
+            m.flat_text = m.flat_text.substr(0,59) + '...';
+        }
+        m.to = (m.m_toname == undefined) ? '&nbsp;' : m.m_toname;
         posts.push(m);
     }
     sys.puts(sys.inspect(posts[0]));
