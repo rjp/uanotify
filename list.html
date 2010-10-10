@@ -1,7 +1,10 @@
 html(lang="en")
   head
+    title New UA Posts
+  body
     table(border=1)
       tr
+        th Folder
         th Subject
         th From
         th To
@@ -9,6 +12,7 @@ html(lang="en")
         th Body
       - for (var post in posts)
         tr
+          td #{posts[post].foldername}
           td
             - var a = '/m/'+posts[post].link;
             - var to = posts[post].m_toname;
