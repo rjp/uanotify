@@ -70,6 +70,35 @@ function output_links(req, res, x) {
     });
 }
 
+function debuffer_hash(h) {
+    for(i in h) {
+        h[i] = h[i].toString('utf8');
+    }
+}
+function get_user_info(z, callback) {
+        r.hgetall('user:zimpenfish', function(err,x){
+            sys.puts(sys.inspect(x));
+	        debuffer_hash(x);
+            r.smembers('user:zimpenfish:folders', function(err, folders){
+                debuffer_hash(folders);
+                sys.puts(sys.inspect(folders));
+                if (err == undefined) {
+                    // now we need the subscribed folders
+                    r.smembers('user:zimpenfish:subs', function(err, subs){
+                        debuffer_hash(subs);
+                        // convert the array into a hash for quick existence checking
+                        var subhash = {}; for(z in subs) { subhash[subs[z]] = 1; }
+                        sys.puts(sys.inspect(subhash));
+                        if (err == undefined) {
+                            // GRIEF
+                            callback(folders, subhash, x, subs);
+                        }
+                    });
+                }
+            });
+        });
+}
+
 function app(app) {
     app.get('/m/:id', function(req, res){
         r.get(req.params.id, function(err, x){
@@ -86,5 +115,49 @@ function app(app) {
             }
         });
         console.log('return list '+req.params.id)
+    });
+    app.get('/profile', function(req,res){
+        res.writeHead(200, {'Content-Type':'text/html'});
+        get_user_info('zimpenfish', function(folders, subs, profile, sublist){
+            jade.renderFile('profile.html', { locals: { profile: profile, folders: folders, subs: subs, sublist: sublist } },
+                function(err, html){ 
+                sys.puts(err);
+                res.end(html); 
+            });
+        });
+    });
+    app.post('/update', function(req,res){
+        var hash = {};
+        hash['ua:user'] = req.body.user;
+        hash['ua:pass'] = req.body.pass;
+        hash['notify:type'] = req.body.type;
+        hash['notify:dest'] = req.body.dest;
+        hash['notify:freq'] = req.body.freq;
+        for(z in hash) {
+            r.hset('user:zimpenfish', z, hash[z], function(){});
+        }
+        r.del('user:zimpenfish:subs', function(){
+            for(z in req.body) {
+                if (z.substr(0,4) == 'sub_') {
+                    r.sadd('user:zimpenfish:subs', z.substr(4));
+                }
+            }
+        });
+        sys.puts(sys.inspect(hash));
+        res.writeHead(302, { Location: '/profile' });
+        res.end();
+    });
+    app.get('/settings', function(req,res){
+        res.writeHead(200, {'Content-Type':'text/html'});
+        // TODO get the user folder subscription somewhere
+        get_user_info('zimpenfish', function(folders, subs, profile, sublist){
+            var b = []; for(z in folders) b.push(z); b.sort();
+
+            jade.renderFile('settings.html', { locals: { profile: profile, folders: folders, fkeys: b, subs: subs } },
+                function(err, html){ 
+                sys.puts(err);
+                res.end(html); 
+            });
+        });
     });
 }
