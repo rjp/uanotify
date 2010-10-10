@@ -100,6 +100,14 @@ function flatten(q, prefix) {
     return q;
 }
 
+// <request="folder_list"><searchtype=2/></>
+function reply_folder_list(a) {
+//    <reply="folder_list"><folder=1><name="test"/><accessmode=7/><subtype=1/><unread=1/></><folder=2><name="private"/><accessmode=263/><subtype=1/></><folder=3><name="chat"/><accessmode=7/><subtype=1/><temp=1/></><numfolders=3/></>
+    for(i in a.children) {
+        sys.puts(sys.inspect(a.children[i]));
+    }
+}
+
 function reply_message_list(a) {
     // hoist the message part into the root with an m_ prefix
     x = notifybot.getChild(a, 'message');
@@ -124,6 +132,17 @@ function announce_message_add(a) {
     notifybot.request('message_list', {messageid: a['messageid']});
 }
 
+function cache_folders(f) {
+    sys.puts("HELLO SIR");
+    sys.puts(sys.inspect(f));
+    r.del('user:zimpenfish:folders', function(){
+        for(i in f) {
+            r.sadd('user:zimpenfish:folders', f[i], function(){});
+        }
+    });
+}
+
+notifybot.addListener("folders", cache_folders);
 notifybot.addListener("announce_message_add", announce_message_add);
 notifybot.addListener("reply_message_list", reply_message_list);
 notifybot.list = Math.uuid();
