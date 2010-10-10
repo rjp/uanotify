@@ -1,0 +1,45 @@
+html(lang="en")
+  head
+    title UA Notify Settings
+  body
+    form(method:'post',action:'/update')
+      table(valign:'top')
+        tr
+          td
+            | UA username
+          td
+            input(name:'user', placeholder:'UA username', value: profile['ua:user'])
+        tr
+          td
+            | UA password
+          td
+            input(name:'pass', placeholder:'UA password', value: profile['ua:pass'])
+        tr
+          td
+            | Notify type
+          td
+            select(name:'type')
+              option(selected: true) Notifo
+        tr
+          td
+            | Notify destination
+          td
+            input(name:'dest', placeholder:'Notify destination', value: profile['notify:dest'])
+        tr
+          td
+            | Frequency
+          td
+            select(name:'freq')
+              option(selected:'true',value:'7200') Two hours
+        tr(valign:'top')
+          td
+            | Folders
+          td
+            - for(folder in fkeys)
+              - if (subs[folders[folder]])
+                input(name:'sub_'+folders[folder],type:'checkbox',checked:'true') 
+              - else
+                input(name:'sub_'+folders[folder],type:'checkbox') 
+              #{folders[folder]}
+              br
+      input(type:'submit',value:'Update')

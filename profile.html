@@ -1,0 +1,36 @@
+html(lang="en")
+  head
+    title UA Notify Profile
+  body
+    table
+      tr
+        td 
+          b UA Username
+        td
+          #{profile['ua:user']}
+      tr
+        td
+          b UA Password
+        td
+          #{profile['ua:pass']}
+      tr
+        td
+          b Notify Type
+        td
+          #{profile['notify:type']}
+      tr
+        td
+          b Notify Destination
+        td
+          #{profile['notify:dest']}
+      tr
+        td
+          b Frequency
+        td
+          | Two hours
+      tr
+        td
+          b Watched Folders
+        td
+          #{sublist.join(', ')}
+    a(href:'/settings') Change my settings
