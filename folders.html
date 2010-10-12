@@ -1,0 +1,18 @@
+html(lang="en")
+  head
+    title UA Notify Settings
+  body
+    form(method:'post',action:'/updatefolders')
+      table(valign:'top')
+        tr(valign:'top')
+          td
+            | Folders
+          td
+            - for(folder in fkeys)
+              - if (subs[folders[folder]])
+                input(name:'sub_'+safe[folders[folder]],type:'checkbox',checked:'true',value:folders[folder]) 
+              - else
+                input(name:'sub_'+safe[folders[folder]],type:'checkbox',value:folders[folder]) 
+              #{folders[folder]}
+              br
+      input(type:'submit',value:'Update folders')
