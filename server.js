@@ -9,6 +9,10 @@ var spawn = require('child_process').spawn;
 var api_keys = require(process.env.HOME + '/.apikeys.js');
 
 var r = redis.createClient();
+var h = process.cwd();
+
+var ua_host = process.argv[2];
+var ua_port = process.argv[3];
 
 var server = connect.createServer(
     connect.logger({ format: ':method :url' }),
@@ -105,7 +109,7 @@ r.smembers('active:users', function(err, users) {
             var b = []; for(z in folders) b.push(z); b.sort();
             sys.puts("starting a new bot for "+profile['ua:user']+'/'+profile['ua:pass']);
             profile['auth:name'] = users[q];
-            ua_sessions[auth] = spawn('node', ['bot.js',JSON.stringify(profile)],{cwd:'/Users/rjp/git/uanotify'});
+            ua_sessions[auth] = spawn('node', ['bot.js',JSON.stringify(profile)],{cwd: h});
             // print whatever we get from the bot
             ua_sessions[auth].stdout.on('data', function(data) {
                 sys.puts("<"+users[q]+"> "+data);
@@ -230,7 +234,10 @@ function app(app) {
                 r.sadd('active:users', auth, function(){});
                 sys.puts("spawning a new bot for "+hash['ua:user']+'/'+hash['ua:pass']);
                 hash['auth:name'] = auth;
-                ua_sessions[auth] = spawn('node', ['bot.js',JSON.stringify(hash)],{cwd:'/Users/rjp/git/uanotify'});
+                hash['ua:server'] = ua_host;
+                hash['ua:port'] = ua_port;
+
+                ua_sessions[auth] = spawn('node', ['bot.js',JSON.stringify(hash)],{cwd: h});
                 // print whatever we get from the bot
                 ua_sessions[auth].stdout.on('data', function(data) {
                     sys.puts("<"+auth+"> "+data);

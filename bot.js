@@ -155,5 +155,5 @@ notifybot.addListener("announce_message_add", announce_message_add);
 notifybot.addListener("reply_message_list", reply_message_list);
 notifybot.list = Math.uuid();
 
-setInterval(periodic, 1*60*1000);
-notifybot.connect(my_hash['ua:user'], my_hash['ua:pass'], 'ipz.frottage.org', 8080);
+setInterval(periodic, 60*60*1000);
+notifybot.connect(my_hash['ua:user'], my_hash['ua:pass'], my_hash['ua:server'], my_hash['ua:port']);
