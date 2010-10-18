@@ -1,0 +1,6 @@
+| To: #{notify_user}
+| From: uanotify@snax.net
+| Content-Type: text/html
+| Subject: UA Notify: #{x.length} new messages
+|  
+| <a href="#{uri}">#{uri}</a>
