@@ -51,7 +51,7 @@ function do_notify(x) {
 	        title: 'UA New messages',
 	        to: notifo_user, // bleh, where do we get this from?
 	        msg: x.length+' new messages',
-	        uri: 'http://backup.frottage.org:9980/l/'+old_list
+	        uri: 'http://'+url_server+'/l/'+old_list
 	    }, function(err, response){
 	        if (err) { throw err; }
 	        else { console.log(response); }
