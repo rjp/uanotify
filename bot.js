@@ -1,15 +1,21 @@
+var jade = require('jade');
 var sys = require('sys');
 var uaclient = require('uaclient');
 var notifo = require('notifo');
 var redis = require('redis');
 var connect = require('connect');
+var email = require('mailer');
+var spawn = require('child_process').spawn;
+
 var api_keys = require(process.env.HOME + '/.apikeys.js');
 require('./Math.uuid.js');
 
 var my_json = process.argv[2];
 var my_hash = JSON.parse(my_json);
 
-var notifo_user = my_hash['notify:dest'];
+var notify_user = my_hash['notify:dest'];
+var notify_type = my_hash['notify:type'];
+var url_server = my_hash['url:base'];
 
 // create this up here
 var notification = new notifo({
@@ -42,20 +48,41 @@ function buffer_to_strings(x) {
     return x;
 }
 
-function do_notify(x) {
-    old_list = notifybot.list
-    if (notifo_user == undefined) {
-        sys.puts('http://backup.frottage.org:9980/l/'+old_list);
-    } else {
+function send_by_notifo(x, uri) {
 	    notification.send({
 	        title: 'UA New messages',
-	        to: notifo_user, // bleh, where do we get this from?
+	        to: notify_user,
 	        msg: x.length+' new messages',
-	        uri: 'http://'+url_server+'/l/'+old_list
+	        uri: uri
 	    }, function(err, response){
 	        if (err) { throw err; }
 	        else { console.log(response); }
 	    });
+}
+
+function send_by_email(x, uri) {
+    jade.renderFile('email.txt', { locals: {
+        x: x, notify_user: notify_user, uri: uri
+    }}, function(err, html) {
+        var child = spawn('/usr/sbin/sendmail', ['-t']);
+        child.stdin.write(html, 'utf8');
+        child.stdin.end();
+    });
+}
+
+function do_notify(x) {
+    var old_list = notifybot.list
+    var uri = 'http://'+url_server+'/l/'+old_list;
+
+    if (notify_user == undefined) {
+        sys.puts(uri);
+    } else {
+        if (notify_type == 'Notifo') {
+            send_by_notifo(x, uri);
+        }
+        if (notify_type == 'Email') {
+            send_by_email(x, uri);
+        }
     }
 }
 
