@@ -1,6 +1,7 @@
 html(lang="en")
   head
     title UA Notify Settings
+    meta(name:'viewport', content:"width=device-width; maximum-scale=1.0; user-scalable=0;")
   body
     form(method:'post',action:'/update')
       table(valign:'top')
@@ -26,7 +27,12 @@ html(lang="en")
             | Notify type
           td
             select(name:'type')
-              option(selected: true) Notifo
+              - if (profile['notify:type'] != 'Email')
+                option(selected: true) Notifo
+                option Email
+              - else
+                option Notifo
+                option(selected: true) Email
         tr
           td
             | Notify destination
