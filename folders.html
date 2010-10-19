@@ -9,11 +9,11 @@ html(lang="en")
           td
             | Folders
           td
-            - for(folder in fkeys)
-              - if (subs[folders[folder]])
-                input(name:'sub_'+safe[folders[folder]],type:'checkbox',checked:'true',value:folders[folder]) 
+            - each folder in fkeys
+              - if (subs[folder])
+                input(name:'sub_'+safe[folder],type:'checkbox',checked:'true',value:folder) 
               - else
-                input(name:'sub_'+safe[folders[folder]],type:'checkbox',value:folders[folder]) 
-              #{folders[folder]}
+                input(name:'sub_'+safe[folder],type:'checkbox',value:folder) 
+              #{folder}
               br
       input(type:'submit',value:'Update folders')
