@@ -1,7 +1,5 @@
 UA Notifier Bot
 
-Featuring implementations in both Ruby and node.js!
-
 > Let's say I'm running a Blackberry / Android UA rich client that
 > received new message notifications (what's that Skippy? No native
 > Symbian push API for Symbian?), by which I mean simple "there are
