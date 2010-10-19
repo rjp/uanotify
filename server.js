@@ -16,6 +16,10 @@ var h = process.cwd();
 var config_json = fs.readFileSync(process.argv[2], 'utf8');
 var config = JSON.parse(config_json);
 
+if (config.frequency == undefined) {
+    config.frequency = {"7200": "Two hours", "14400":"Four hours"};
+}
+
 var server = connect.createServer(
     connect.logger({ format: ':method :url' }),
     connect.bodyDecoder(),
@@ -194,7 +198,9 @@ function app(app) {
             sys.puts('AUTHENTICATED AS '+auth);
             res.writeHead(200, {'Content-Type':'text/html'});
             get_user_info(auth, function(folders, subs, profile, sublist){
-                jade.renderFile('profile.html', { locals: { profile: profile, folders: folders, subs: subs, sublist: sublist } },
+                var b = []; for(z in sublist) { b.push(sublist[z]); } b.sort();
+                sys.puts(sys.inspect(b));
+                jade.renderFile('profile.html', { locals: { profile: profile, folders: folders, subs: subs, sublist: sublist, freq: config.frequency, s_f: b.join(', ') } },
                     function(err, html){ 
                     sys.puts(err);
                     res.end(html); 
@@ -273,6 +279,7 @@ function app(app) {
                     sys.puts("SF "+q+" = "+safe_folders[q]);
                 }
                 b.sort();
+                sys.puts("Sorted B = "+ sys.inspect(b));
                 jade.renderFile('folders.html', { locals: { profile: profile, folders: folders, fkeys: b, subs: subs, safe: safe_folders } },
                     function(err, html){ 
                     sys.puts(err);
@@ -287,13 +294,19 @@ function app(app) {
             res.writeHead(200, {'Content-Type':'text/html'});
             // TODO get the user folder subscription somewhere
             get_user_info(auth, function(folders, subs, profile, sublist){
-                var b = []; for(z in folders) b.push(z); b.sort();
+                var z;
+                var s_f = []; for(z in config.frequency) s_f.push(z); s_f.sort();
 
-                jade.renderFile('settings.html', { locals: { profile: profile, folders: folders, fkeys: b, subs: subs } },
-                    function(err, html){ 
-                    sys.puts(err);
-                    res.end(html); 
-                });
+                jade.renderFile('settings.html', { 
+                        locals: { 
+                            profile: profile, folders: folders, 
+                            subs: subs, f_keys: s_f,
+                            freq: config.frequency
+                        } 
+                    }, function(err, html){ 
+                        res.end(html); 
+                    }
+                );
             });
         });
     });

@@ -43,5 +43,9 @@ html(lang="en")
             | Frequency
           td
             select(name:'freq')
-              option(selected:'true',value:'7200') Two hours
+              - each freqtime in f_keys
+                - if (freqtime == profile['notify:freq'])
+                  option(selected:'true',value: freqtime) #{freq[freqtime]}
+                - else
+                  option(value: freqtime) #{freq[freqtime]}
       input(type:'submit',value:'Update settings')

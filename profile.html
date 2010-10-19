@@ -28,12 +28,12 @@ html(lang="en")
         td
           b Frequency
         td
-          | Two hours
+          #{freq[profile['notify:freq']]}
       tr
         td
           b Watched Folders
         td
-          #{sublist.join(', ')}
+          #{s_f}
     a(href:'/settings') Change my settings
     br
     a(href:'/folders') Change my folders
