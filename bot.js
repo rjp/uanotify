@@ -182,5 +182,5 @@ notifybot.addListener("announce_message_add", announce_message_add);
 notifybot.addListener("reply_message_list", reply_message_list);
 notifybot.list = Math.uuid();
 
-setInterval(periodic, 60*60*1000);
+setInterval(periodic, my_hash['notify:freq'] * 1000);
 notifybot.connect(my_hash['ua:user'], my_hash['ua:pass'], my_hash['ua:server'], my_hash['ua:port']);
