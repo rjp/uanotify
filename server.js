@@ -30,8 +30,9 @@ var server = connect.createServer(
     connect.router(app),
     connect.errorHandler({ dumpExceptions: true, showStack: true })
 );
-server.listen(3000);
-log.info('Connect server listening on port 3000');
+
+server.listen(config.port);
+log.info('Connect server listening on port '+config.port);
 
 var ua_sessions = {};
 
