@@ -7,6 +7,7 @@ var connect = require('connect');
 var auth = require('connect-auth');
 var spawn = require('child_process').spawn;
 var fs = require('fs');
+var Log = require('log'), log = new Log(Log.WARNING);
 
 var api_keys = require(process.env.HOME + '/.apikeys.js');
 
@@ -30,18 +31,18 @@ var server = connect.createServer(
     connect.errorHandler({ dumpExceptions: true, showStack: true })
 );
 server.listen(3000);
-console.log('Connect server listening on port 3000');
+log.info('Connect server listening on port 3000');
 
 var ua_sessions = {};
 
 function authenticate(user, pass, success, failure) {
-    sys.puts('pass is '+pass);
-    sys.puts('getting the key auth:'+user);
+    log.info('pass is '+pass);
+    log.info('getting the key auth:'+user);
     r.get('auth:'+user, function(err, result) {
         var real_pass = result.toString('utf8');
-        sys.puts('real pass is '+real_pass);
+        log.info('real pass is '+real_pass);
         if (pass == real_pass) {
-            sys.puts('AUTHENTICATED, PROCEEDING');
+            log.info('AUTHENTICATED, PROCEEDING');
             success();
         } else {
             failure();
@@ -52,7 +53,7 @@ function authenticate(user, pass, success, failure) {
 function output_message(req, res, x) {
     a = JSON.parse(x);
     res.writeHead(200, { 'Content-Type': 'text/html' });
-    sys.puts("TO="+a.m_toname);
+    log.info("TO="+a.m_toname);
     var to = a.m_toname == undefined ? undefined : a.m_toname;
     d = new Date(a.m_date * 1000);
     b = d.toLocaleString();
@@ -93,11 +94,11 @@ function output_links(req, res, x) {
         m.to = (m.m_toname == undefined) ? '&nbsp;' : m.m_toname;
         posts.push(m);
     }
-    sys.puts(sys.inspect(posts[0]));
+    log.info(sys.inspect(posts[0]));
 
     jade.renderFile('list.html', { locals: { posts: posts } },
         function(err, html){ 
-        sys.puts(err);
+        log.warning(err);
         res.end(html); 
     });
 }
@@ -113,7 +114,7 @@ r.smembers('active:users', function(err, users) {
     for(q in users) {
         get_user_info(users[q], function(folders, subs, profile, sublist) {
             var b = []; for(z in folders) b.push(z); b.sort();
-            sys.puts("starting a new bot for "+profile['ua:user']+'/'+profile['ua:pass']);
+            log.info("starting a new bot for "+profile['ua:user']+'/'+profile['ua:pass']);
             profile['auth:name'] = users[q];
             profile['ua:server'] = config.ua_host;
             profile['ua:port'] = config.ua_port;
@@ -121,7 +122,7 @@ r.smembers('active:users', function(err, users) {
             ua_sessions[auth] = spawn('node', ['bot.js',JSON.stringify(profile)],{cwd: h});
             // print whatever we get from the bot
             ua_sessions[auth].stdout.on('data', function(data) {
-                sys.puts("<"+users[q]+"> "+data);
+                log.info("<"+users[q]+"> "+data);
             });
         });
     }
@@ -132,17 +133,17 @@ function get_user_info(auth, callback) {
         'ua:user': '', 'ua:pass': '', 'notify:type': 'Notifo', 
         'notify:dest': '', 'notify:freq': 7200
     };
-    sys.puts('fetching the hash for user:'+auth);
+    log.info('fetching the hash for user:'+auth);
     r.sismember('active:users', auth, function(err, isactive) {
     r.hgetall('user:'+auth, function(err,x){
-        sys.puts(sys.inspect(x));
+        log.info(sys.inspect(x));
         debuffer_hash(x);
 
         // if we don't have a notify:type, this must be a new user
         // create one from our blank template and give them no subs
         // mark them as having no folders for printing in the template
         if (x == undefined || x['notify:type'] == undefined) {
-            sys.puts("User doesn't exist in the store, creating a blank one");
+            log.info("User doesn't exist in the store, creating a blank one");
             for(z in blank_user) {
                 r.hset('user:'+auth, z, blank_user[z], function(){});
             }
@@ -153,17 +154,20 @@ function get_user_info(auth, callback) {
 
         r.smembers('user:'+auth+':folders', function(err, folders){
             debuffer_hash(folders);
-            sys.puts(sys.inspect(folders));
+            log.info(sys.inspect(folders));
             if (err == undefined) {
                 // now we need the subscribed folders
                 r.smembers('user:'+auth+':subs', function(err, subs){
-                    sys.puts('ERROR '+err);
+                    if (err) { 
+                        log.warning('ERROR '+err);
+                        throw(err);
+                    }
                     debuffer_hash(subs);
                     my_subs = []
                     for (z in subs) { my_subs[z] = subs[z]; }
                     // convert the array into a hash for quick existence checking
                     var subhash = {}; for(z in my_subs) { subhash[my_subs[z]] = 1; }
-                    sys.puts(sys.inspect(subhash));
+                    log.info(sys.inspect(subhash));
                     if (err == undefined) {
                         // GRIEF
                         callback(folders, subhash, x, my_subs);
@@ -195,14 +199,14 @@ function app(app) {
     app.get('/profile', function(req,res,params){
         req.authenticate(['basic'], function(err, authx){
             var auth = req.getAuthDetails().user.username;
-            sys.puts('AUTHENTICATED AS '+auth);
+            log.info('AUTHENTICATED AS '+auth);
             res.writeHead(200, {'Content-Type':'text/html'});
             get_user_info(auth, function(folders, subs, profile, sublist){
                 var b = []; for(z in sublist) { b.push(sublist[z]); } b.sort();
-                sys.puts(sys.inspect(b));
+                log.info(sys.inspect(b));
                 jade.renderFile('profile.html', { locals: { profile: profile, folders: folders, subs: subs, sublist: sublist, freq: config.frequency, s_f: b.join(', ') } },
                     function(err, html){ 
-                    sys.puts(err);
+                    log.info(err);
                     res.end(html); 
                 });
             });
@@ -213,7 +217,7 @@ function app(app) {
             var auth = req.getAuthDetails().user.username;
             r.del('user:'+auth+':subs', function(){
                 for(z in req.body) {
-                    sys.puts("parameter "+z+" = "+req.body[z]);
+                    log.info("parameter "+z+" = "+req.body[z]);
                     if (z.substr(0,4) == 'sub_') {
                         r.sadd('user:'+auth+':subs', req.body[z]);
                     }
@@ -238,12 +242,12 @@ function app(app) {
             }
             // stop any UA session they have running and start a new one
             if (ua_sessions[auth]) { 
-                sys.puts("killing old bot session for "+auth);
+                log.info("killing old bot session for "+auth);
                 ua_sessions[auth].kill();
             } 
             if (req.body.active) {
                 r.sadd('active:users', auth, function(){});
-                sys.puts("spawning a new bot for "+hash['ua:user']+'/'+hash['ua:pass']);
+                log.info("spawning a new bot for "+hash['ua:user']+'/'+hash['ua:pass']);
                 hash['auth:name'] = auth;
                 hash['ua:server'] = config.ua_host;
                 hash['ua:port'] = config.ua_port;
@@ -252,14 +256,14 @@ function app(app) {
                 ua_sessions[auth] = spawn('node', ['bot.js',JSON.stringify(hash)],{cwd: h});
                 // print whatever we get from the bot
                 ua_sessions[auth].stdout.on('data', function(data) {
-                    sys.puts("<"+auth+"> "+data);
+                    log.info("<"+auth+"> "+data);
                 });
             } else {
                 r.srem('active:users', auth, function(){});
-                sys.puts("not spawning a new bot for "+hash['ua:user']);
+                log.info("not spawning a new bot for "+hash['ua:user']);
             }
 
-            sys.puts(sys.inspect(hash));
+            log.info(sys.inspect(hash));
             res.writeHead(302, { Location: '/profile' });
             res.end();
         });
@@ -276,13 +280,13 @@ function app(app) {
                     var q = folders[z];
                     b.push(q);
                     safe_folders[q] = q.replace(/[^a-zA-Z0-9]/g, ':')                    
-                    sys.puts("SF "+q+" = "+safe_folders[q]);
+                    log.info("SF "+q+" = "+safe_folders[q]);
                 }
                 b.sort();
-                sys.puts("Sorted B = "+ sys.inspect(b));
+                log.info("Sorted B = "+ sys.inspect(b));
                 jade.renderFile('folders.html', { locals: { profile: profile, folders: folders, fkeys: b, subs: subs, safe: safe_folders } },
                     function(err, html){ 
-                    sys.puts(err);
+                    log.warning(err);
                     res.end(html); 
                 });
             });
