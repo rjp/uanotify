@@ -16,6 +16,14 @@ html(lang="en")
           #{profile['ua:pass']}
       tr
         td
+          b Mark as read?
+        td
+          - if (profile['ua:markread'] == 'on')
+            | yes
+          - else
+            | no
+      tr
+        td
           b Notify Type
         td
           #{profile['notify:type']}

@@ -24,6 +24,13 @@ html(lang="en")
             input(name:'pass', placeholder:'UA password', value: profile['ua:pass'])
         tr
           td
+            | Default mark as read?
+            - if (profile['ua:markread'] == 'on')
+              input(name:'markread',type:'checkbox',checked:'true')
+            - else
+              input(name:'markread',type:'checkbox')
+        tr
+          td
             | Notify type
           td
             select(name:'type')

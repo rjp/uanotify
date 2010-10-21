@@ -132,7 +132,7 @@ r.smembers('active:users', function(err, users) {
 function get_user_info(auth, callback) {
     blank_user = { 
         'ua:user': '', 'ua:pass': '', 'notify:type': 'Notifo', 
-        'notify:dest': '', 'notify:freq': 7200
+        'notify:dest': '', 'notify:freq': 7200, 'ua:markread': 0
     };
     log.info('fetching the hash for user:'+auth);
     r.sismember('active:users', auth, function(err, isactive) {
@@ -238,6 +238,7 @@ function app(app) {
             hash['notify:type'] = req.body.type;
             hash['notify:dest'] = req.body.dest;
             hash['notify:freq'] = req.body.freq;
+            hash['ua:markread'] = req.body.markread;
             for(z in hash) {
                 r.hset('user:'+auth, z, hash[z], function(){});
             }
