@@ -123,7 +123,7 @@ r.smembers('active:users', function(err, users) {
             ua_sessions[auth] = spawn('node', ['bot.js',JSON.stringify(profile)],{cwd: h});
             // print whatever we get from the bot
             ua_sessions[auth].stdout.on('data', function(data) {
-                log.info("<"+users[q]+"> "+data);
+                log.warning("<"+users[q]+"> "+data);
             });
         });
     }
@@ -190,7 +190,7 @@ function app(app) {
         console.log('return message '+req.params.id)
     });
     app.get('/l/:id', function(req, res){
-        r.lrange(req.params.id, 0, -1, function(err, x){
+        r.zrange('sorted:'+req.params.id, 0, -1, function(err, x){
             if (err == undefined) {
                 output_links(req, res, x);
             }

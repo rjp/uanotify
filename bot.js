@@ -88,6 +88,7 @@ function do_notify(x) {
 
 function notify_list(e, x) {
     buffer_to_strings(x);
+    // what the hell does this do?
     for(i in x) {
         item = JSON.parse(x[i]);
     }
@@ -147,6 +148,8 @@ function reply_message_list(a) {
     flatten(a);
     flatten(x, 'm_');
     extend(a, x);
+
+
     var auth = my_hash['auth:name'];
     r.smembers('user:'+auth+':subs', function(err, folders){
         buffer_to_strings(folders);
@@ -154,11 +157,22 @@ function reply_message_list(a) {
         sys.puts(sys.inspect(q));
 
         if (q[a.foldername] == 1) {
+            sys.puts(sys.inspect(a));
             sys.puts("post in a watched folder, "+a.foldername+", from "+a.fromname);
             link = Math.uuid();
             a.link = link;
-            r.rpush(notifybot.list, JSON.stringify(a), function(){});
-            r.set(link, JSON.stringify(a), function(){});
+            var json = JSON.stringify(a);
+            r.rpush(notifybot.list, json, function(){});
+            r.set(link, json, function(){});
+
+            var us_folder = a.foldername.toUpperCase();
+            var c_folder = parseInt(us_folder, 36); // (c) UA
+            // this assumes that a.message is monotonically increasing
+            // (at least within a folder, if not globally) and that 
+            // it'll stay below 10,000,000 
+            var score = 10000000 * c_folder + a.message;
+            sys.puts("adding to sorted list, us_folder="+us_folder+", score="+score);
+            r.zadd('sorted:'+notifybot.list, score, json, function(err,x){sys.puts("zadd.err = "+err)});
         }
     });
 }
