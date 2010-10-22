@@ -110,28 +110,33 @@ function debuffer_hash(h) {
     }
 }
 
-function spawn_bots() {
+// reason is 'boot', 'settings' or 'interval'
+function spawn_bot(user, reason) {
+    get_user_info(user, function(folders, subs, profile, sublist) {
+        var b = []; for(z in folders) b.push(z); b.sort();
+        log.info("starting a new bot for "+profile['ua:user']+'/'+profile['ua:pass']);
+        profile['auth:name'] = user;
+        profile['ua:server'] = config.ua_host;
+        profile['ua:port'] = config.ua_port;
+        profile['url:base'] = config.url_base;
+        ua_sessions[auth] = spawn('node', ['bot.js',JSON.stringify(profile)],{cwd: h});
+        // print whatever we get from the bot
+        ua_sessions[auth].stdout.on('data', function(data) {
+            log.info("<"+user+"> "+data);
+        });
+    });
+}
+
+function spawn_bots(reason) {
 	r.smembers('active:users', function(err, users) {
 	    debuffer_hash(users);
 	    for(q in users) {
-	        get_user_info(users[q], function(folders, subs, profile, sublist) {
-	            var b = []; for(z in folders) b.push(z); b.sort();
-	            log.info("starting a new bot for "+profile['ua:user']+'/'+profile['ua:pass']);
-	            profile['auth:name'] = users[q];
-	            profile['ua:server'] = config.ua_host;
-	            profile['ua:port'] = config.ua_port;
-	            profile['url:base'] = config.url_base;
-	            ua_sessions[auth] = spawn('node', ['bot.js',JSON.stringify(profile)],{cwd: h});
-	            // print whatever we get from the bot
-	            ua_sessions[auth].stdout.on('data', function(data) {
-	                log.info("<"+users[q]+"> "+data);
-	            });
-	        });
+            spawn_bot(users[q], reason);
 	    }
 	});
 }
 
-spawn_bots();
+spawn_bots('boot');
 
 function get_user_info(auth, callback) {
     blank_user = { 
