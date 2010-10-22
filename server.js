@@ -112,6 +112,13 @@ function debuffer_hash(h) {
 
 // reason is 'boot', 'settings' or 'interval'
 function spawn_bot(user, reason) {
+    var should_spawn = false; // default to not spawning
+
+    // don't spawn 
+    if (! should_spawn) {
+        return;
+    }
+
     get_user_info(user, function(folders, subs, profile, sublist) {
         var b = []; for(z in folders) b.push(z); b.sort();
         log.info("starting a new bot for "+profile['ua:user']+'/'+profile['ua:pass']);
