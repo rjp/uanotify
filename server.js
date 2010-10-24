@@ -11,6 +11,8 @@ var Log = require('log'), log = new Log(Log.WARNING);
 
 var api_keys = require(process.env.HOME + '/.apikeys.js');
 
+var TooQuickSpawn = 5 * 60 * 1000; // 5 minutes
+
 var r = redis.createClient();
 var h = process.cwd();
 
@@ -34,6 +36,7 @@ var server = connect.createServer(
 server.listen(config.port);
 log.info('Connect server listening on port '+config.port);
 
+// holds information about our child bots
 var ua_sessions = {};
 
 function authenticate(user, pass, success, failure) {
@@ -113,23 +116,55 @@ function debuffer_hash(h) {
 // reason is 'boot', 'settings' or 'interval'
 function spawn_bot(user, reason) {
     var should_spawn = false; // default to not spawning
+    var now = new Date().getTime();
+
+    if (reason == 'boot' || reason == 'settings') { // always spawn at boot or on settings change
+        should_spawn = true;
+    }
+
+    if (ua_sessions[user] != undefined) { // we have a flag
+        if (ua_sessions[user].process == undefined) { // did we just die?
+            var since_last = now - ua_sessions[user].last;
+            log.warning(user+": time_check: "+since_last/1000+"s");
+            if (since_last < TooQuickSpawn) {
+                log.warning(user+": too soon");
+            } else {
+                log.warning(user+": time elapsed");
+                should_spawn = true;
+            }
+        } else {
+            log.warning(user+": alive");
+            ua_sessions[user].last = now; // record the last alive time
+        }
+    } else {
+        log.warning(user+": not alive");
+        should_spawn = true;
+    }
 
     // don't spawn 
-    if (! should_spawn) {
-        return;
+    if (! should_spawn) { 
+        log.warning(user+": not spawning");
+        return; 
     }
 
     get_user_info(user, function(folders, subs, profile, sublist) {
         var b = []; for(z in folders) b.push(z); b.sort();
-        log.info("starting a new bot for "+profile['ua:user']+'/'+profile['ua:pass']);
+        log.warning("starting a new ["+reason+"] bot for "+user+"/"+profile['ua:user']);
         profile['auth:name'] = user;
         profile['ua:server'] = config.ua_host;
         profile['ua:port'] = config.ua_port;
         profile['url:base'] = config.url_base;
-        ua_sessions[auth] = spawn('node', ['bot.js',JSON.stringify(profile)],{cwd: h});
+        var child = spawn('node', ['bot.js',JSON.stringify(profile)],{cwd: h});
+        ua_sessions[user] = { process: child, last: now };
         // print whatever we get from the bot
-        ua_sessions[auth].stdout.on('data', function(data) {
+        ua_sessions[user].process.stdout.on('data', function(data) {
             log.info("<"+user+"> "+data);
+        });
+        ua_sessions[user].process.on('exit', function(code, signal) {
+            if (code > 0) { 
+                log.warning('bot disappeared, code is '+code);
+            }
+            ua_sessions[user].process = undefined;
         });
     });
 }
@@ -144,6 +179,7 @@ function spawn_bots(reason) {
 }
 
 spawn_bots('boot');
+setInterval(function(){spawn_bots('respawn')}, 60 * 1000);
 
 function get_user_info(auth, callback) {
     blank_user = { 
@@ -265,17 +301,7 @@ function app(app) {
             } 
             if (req.body.active) {
                 r.sadd('active:users', auth, function(){});
-                log.info("spawning a new bot for "+hash['ua:user']+'/'+hash['ua:pass']);
-                hash['auth:name'] = auth;
-                hash['ua:server'] = config.ua_host;
-                hash['ua:port'] = config.ua_port;
-                hash['url:base'] = config.url_base;
-
-                ua_sessions[auth] = spawn('node', ['bot.js',JSON.stringify(hash)],{cwd: h});
-                // print whatever we get from the bot
-                ua_sessions[auth].stdout.on('data', function(data) {
-                    log.info("<"+auth+"> "+data);
-                });
+                spawn_bot(auth, 'settings');
             } else {
                 r.srem('active:users', auth, function(){});
                 log.info("not spawning a new bot for "+hash['ua:user']);
