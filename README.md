@@ -1,4 +1,5 @@
 UA Notifier Bot
+===============
 
 > Let's say I'm running a Blackberry / Android UA rich client that
 > received new message notifications (what's that Skippy? No native
@@ -14,3 +15,16 @@ UA Notifier Bot
 > profile. Now granted nothing in the UA server supports the concept
 > subscription filtering but you could achieve the same thing by storing
 > the information as client data which UA does support.
+
+HOWTO
+-----
+First you need a JSON configuration file:
+
+    { "ua_host":"some.host.org", "ua_port":2334,
+      "url_base":"localhost:3000", "port":3000,
+      "frequency":{"7200":"Two hours","180":"Three minutes"} 
+    }
+    
+Pass that as the only argument to the server.
+
+    > node server.js config.js
