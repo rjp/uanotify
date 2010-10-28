@@ -297,7 +297,7 @@ function app(app) {
             // stop any UA session they have running and start a new one
             if (ua_sessions[auth]) { 
                 log.info("killing old bot session for "+auth);
-                ua_sessions[auth].kill();
+                ua_sessions[auth].process.kill();
             } 
             if (req.body.active) {
                 r.sadd('active:users', auth, function(){});
