@@ -72,7 +72,7 @@ function output_message(req, res, x) {
 }
 
 function buffer_to_strings(x) {
-    for(i in x) {
+    for(var i in x) {
         x[i] = x[i].toString('utf8');
     }
     return x;
@@ -85,7 +85,7 @@ function output_links(req, res, x) {
     res.writeHead(200, { 'Content-Type': 'text/html' });
 
     var posts = [];
-    for(i in x) {
+    for(var i in x) {
         m = JSON.parse(x[i]);
 	    d = new Date(m.m_date * 1000);
 	    b = d.toLocaleString();
@@ -108,7 +108,7 @@ function output_links(req, res, x) {
 }
 
 function debuffer_hash(h) {
-    for(i in h) {
+    for(var i in h) {
         h[i] = h[i].toString('utf8');
     }
 }
@@ -148,7 +148,7 @@ function spawn_bot(user, reason) {
     }
 
     get_user_info(user, function(folders, subs, profile, sublist) {
-        var b = []; for(z in folders) b.push(z); b.sort();
+        var b = []; for(var z in folders) b.push(z); b.sort();
         log.warning("starting a new ["+reason+"] bot for "+user+"/"+profile['ua:user']);
         profile['auth:name'] = user;
         profile['ua:server'] = config.ua_host;
@@ -172,7 +172,7 @@ function spawn_bot(user, reason) {
 function spawn_bots(reason) {
 	r.smembers('active:users', function(err, users) {
 	    debuffer_hash(users);
-	    for(q in users) {
+	    for(var q in users) {
             spawn_bot(users[q], reason);
 	    }
 	});
@@ -197,7 +197,7 @@ function get_user_info(auth, callback) {
         // mark them as having no folders for printing in the template
         if (x == undefined || x['notify:type'] == undefined) {
             log.info("User doesn't exist in the store, creating a blank one");
-            for(z in blank_user) {
+            for(var z in blank_user) {
                 r.hset('user:'+auth, z, blank_user[z], function(){});
             }
             r.del('user:'+auth+':subs', function(){});
@@ -217,9 +217,9 @@ function get_user_info(auth, callback) {
                     }
                     debuffer_hash(subs);
                     my_subs = []
-                    for (z in subs) { my_subs[z] = subs[z]; }
+                    for (var z in subs) { my_subs[z] = subs[z]; }
                     // convert the array into a hash for quick existence checking
-                    var subhash = {}; for(z in my_subs) { subhash[my_subs[z]] = 1; }
+                    var subhash = {}; for(var z in my_subs) { subhash[my_subs[z]] = 1; }
                     log.info(sys.inspect(subhash));
                     if (err == undefined) {
                         // GRIEF
@@ -255,7 +255,7 @@ function app(app) {
             log.info('AUTHENTICATED AS '+auth);
             res.writeHead(200, {'Content-Type':'text/html'});
             get_user_info(auth, function(folders, subs, profile, sublist){
-                var b = []; for(z in sublist) { b.push(sublist[z]); } b.sort();
+                var b = []; for(var z in sublist) { b.push(sublist[z]); } b.sort();
                 log.info(sys.inspect(b));
                 jade.renderFile('profile.html', { locals: { profile: profile, folders: folders, subs: subs, sublist: sublist, freq: config.frequency, s_f: b.join(', ') } },
                     function(err, html){ 
@@ -269,7 +269,7 @@ function app(app) {
         req.authenticate(['basic'], function(err, authx){
             var auth = req.getAuthDetails().user.username;
             r.del('user:'+auth+':subs', function(){
-                for(z in req.body) {
+                for(var z in req.body) {
                     log.info("parameter "+z+" = "+req.body[z]);
                     if (z.substr(0,4) == 'sub_') {
                         r.sadd('user:'+auth+':subs', req.body[z]);
@@ -291,7 +291,7 @@ function app(app) {
             hash['notify:dest'] = req.body.dest;
             hash['notify:freq'] = req.body.freq;
             hash['ua:markread'] = req.body.markread;
-            for(z in hash) {
+            for(var z in hash) {
                 r.hset('user:'+auth, z, hash[z], function(){});
             }
             // stop any UA session they have running and start a new one
@@ -320,7 +320,7 @@ function app(app) {
             get_user_info(auth, function(folders, subs, profile, sublist){
                 var b = []; 
                 var safe_folders = {};
-                for(z in folders) {
+                for(var z in folders) {
                     var q = folders[z];
                     b.push(q);
                     safe_folders[q] = q.replace(/[^a-zA-Z0-9]/g, ':')                    
@@ -343,7 +343,7 @@ function app(app) {
             // TODO get the user folder subscription somewhere
             get_user_info(auth, function(folders, subs, profile, sublist){
                 var z;
-                var s_f = []; for(z in config.frequency) s_f.push(z); s_f.sort();
+                var s_f = []; for(var z in config.frequency) s_f.push(z); s_f.sort();
 
                 jade.renderFile('settings.html', { 
                         locals: { 

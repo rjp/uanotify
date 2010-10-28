@@ -42,7 +42,7 @@ function new_list() {
 }
 
 function buffer_to_strings(x) {
-    for(i in x) {
+    for(var i in x) {
         x[i] = x[i].toString('utf8');
     }
     return x;
@@ -88,7 +88,7 @@ function do_notify(x) {
 
 function notify_list(e, x) {
     buffer_to_strings(x);
-    for(i in x) {
+    for(var i in x) {
         item = JSON.parse(x[i]);
     }
     do_notify(x);
@@ -118,7 +118,7 @@ function extend(v1, v2) {
 
 // semi-flatten an EDF tree into a more usable JS object
 function flatten(q, prefix) {
-    for(i=0;i<q.children.length;i++){
+    for(var i=0;i<q.children.length;i++){
         if (prefix == undefined) {
             q[q.children[i].tag] = q.children[i].value
         } else {
@@ -132,7 +132,7 @@ function flatten(q, prefix) {
 function reply_folder_list(a) {
 //    <reply="folder_list"><folder=1><name="test"/><accessmode=7/><subtype=1/><unread=1/></><folder=2><name="private"/><accessmode=263/><subtype=1/></><folder=3><name="chat"/><accessmode=7/><subtype=1/><temp=1/></><numfolders=3/></>
     var f = [];
-    for(i in a.children) {
+    for(var i in a.children) {
         var v = a.children[i];
         flatten(v);
         sys.puts("F "+v.name);
@@ -153,7 +153,7 @@ function reply_message_list(a) {
     }
     r.smembers('user:'+auth+':subs', function(err, folders){
         buffer_to_strings(folders);
-        var q = {}; for(z in folders) { q[folders[z]] = 1 }
+        var q = {}; for(var z in folders) { q[folders[z]] = 1 }
         sys.puts(sys.inspect(q));
 
         if (q[a.foldername] == 1) {
@@ -178,7 +178,7 @@ function announce_message_add(a) {
 
 function cache_folders(f) {
     r.del('user:'+my_hash['auth:name']+':folders', function(){
-        for(i in f) {
+        for(var i in f) {
             sys.puts("CF "+f[i]);
             r.sadd('user:'+my_hash['auth:name']+':folders', f[i], function(){});
         }
