@@ -4,11 +4,17 @@ var uaclient = require('uaclient');
 var notifo = require('notifo');
 var redis = require('redis');
 var connect = require('connect');
-var email = require('mailer');
 var spawn = require('child_process').spawn;
 
 var api_keys = require(process.env.HOME + '/.apikeys.js');
 require('./Math.uuid.js');
+
+var mail = require('mail').Mail({
+    host: keys.smtp.host,
+    port: 25,
+    username: keys.smtp.user,
+    password: keys.smtp.pass
+});
 
 var my_json = process.argv[2];
 var my_hash = JSON.parse(my_json);
@@ -61,12 +67,20 @@ function send_by_notifo(x, uri) {
 }
 
 function send_by_email(x, uri) {
+    var boundary = Math.uuid();
     jade.renderFile('email.txt', { locals: {
-        x: x, notify_user: notify_user, uri: uri
+        x: x, notify_user: notify_user, uri: uri,
+        boundary: boundary
     }}, function(err, html) {
-        var child = spawn('/usr/sbin/sendmail', ['-t']);
-        child.stdin.write(html, 'utf8');
-        child.stdin.end();
+		mail.message({
+		    from: 'UA Notify Bot <uanotify@frottage.org>',
+		    to: [notify_user],
+		    subject: 'UANotify: '+x.length+' new messages',
+	        "content-type": 'multipart/alternative; boundary='+boundary
+	    }).body(html)
+		  .send(function(err) {
+		    if (err) throw err;
+	    });
     });
 }
 

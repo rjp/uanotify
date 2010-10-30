@@ -1,6 +1,17 @@
-| To: #{notify_user}
-| From: uanotify@snax.net
-| Content-Type: text/html
-| Subject: UA Notify: #{x.length} new messages
-|  
-| <a href="#{uri}">#{uri}</a>
+| --#{boundary}
+| Content-Type: text/plain; charset=UTF-8
+| 
+| #{x.length} new messages
+| #{uri}
+| --#{boundary}
+| Content-Type: text/html; charset=UTF-8
+| 
+html
+  head
+    title #{x.length} new messages
+  body
+    a(href:uri) #{uri}
+    br
+    small UA Notify Bot says hello!
+| 
+| --#{boundary}--
