@@ -73,8 +73,10 @@ function wordwrap(str){
     return r.join("\n");
 }
 
-function output_message(req, res, x) {
-    a = JSON.parse(x);
+function output_message(req, res, x, t) {
+    var template = t;
+    if (t == undefined) { template = 'message.html'; } // default to the full page
+    var a = JSON.parse(x);
     res.writeHead(200, { 'Content-Type': 'text/html' });
     log.info("TO="+a.m_toname);
     var to = a.m_toname == undefined ? undefined : a.m_toname;
@@ -255,9 +257,13 @@ function get_user_info(auth, callback) {
 function app(app) {
     app.get('/m/:id', function(req, res){
         r.get(req.params.id, function(err, x){
-            if (err == undefined) {
+            if (err) { throw(err); }
+            if (x != undefined) {
                 output_message(req, res, x);
-            }
+            } else {
+                res.writeHead(302, { Location: '/expired' });
+                res.end();
+            };
         });
         console.log('return message '+req.params.id)
     });
@@ -382,4 +388,11 @@ function app(app) {
         res.writeHead(200, {'Content-Type': 'text/html'});
         res.end('NOT AUTHENTICATED, BUGGER OFF!');
     });
+    app.get('/expired', function(req, res) {
+        res.writeHead(200, {'Content-Type': 'text/html'});
+        jade.renderFile('expired.html', {locals: {}}, function(err, html) {
+            res.end(html);
+        })
+    });
 }
+
