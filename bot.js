@@ -162,7 +162,7 @@ function reply_message_list(a) {
     flatten(x, 'm_');
     extend(a, x);
     var auth = my_hash['auth:name'];
-    if (! my_hash['ua:markread']) {
+    if (my_hash['ua:markread'] == undefined || ! my_hash['ua:markread']) {
         notifybot.request('message_mark_unread', { messageid: a.message, crossfolder: 1 });
     }
     r.smembers('user:'+auth+':subs', function(err, folders){
@@ -184,7 +184,7 @@ function announce_message_add(a) {
     notifybot.flatten(a);
     // default to requesting message bodies without marking them read
     var rp = { messageid: a['messageid'], markread: 0 };
-    if (my_hash['ua:markread']) {
+    if (my_hash['ua:markread'] != undefined && my_hash['ua:markread']) {
         delete rp['markread']; // absence makes the marking readier
     }
     notifybot.request('message_list', rp);
