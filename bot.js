@@ -2,7 +2,7 @@ var jade = require('jade');
 var sys = require('sys');
 var uaclient = require('uaclient');
 var notifo = require('notifo');
-var redis = require('redis');
+var redis = require('redis-client');
 var connect = require('connect');
 var spawn = require('child_process').spawn;
 
@@ -16,20 +16,42 @@ var mail = require('mail').Mail({
     password: keys.smtp.pass
 });
 
+// wrapper around try/catch for standardised handling
+function catcher(exitcode, callee) {
+    try {
+        callee();
+    } catch(e) {
+        sys.puts(e);
+        process.exit(exitcode);
+    }
+}
+
 var my_json = process.argv[2];
-var my_hash = JSON.parse(my_json);
+
+var my_hash;
+catcher(44, function(){
+    my_hash = JSON.parse(my_json);
+});
 
 var notify_user = my_hash['notify:dest'];
 var notify_type = my_hash['notify:type'];
 var url_server = my_hash['url:base'];
 
 // create this up here
-var notification = new notifo({
-    'username': keys.notifo.user,
-    'secret': keys.notifo.secret
+var notification;
+catcher(43, function() {
+    notification = new notifo({
+	    'username': keys.notifo.user,
+	    'secret': keys.notifo.secret
+	})
 });
 
+// connect to redis if we can
 var r = redis.createClient();
+r.addListener('noconnection', function(){
+    sys.puts("No Redis?");
+    process.exit(42);
+});
 
 var username = my_hash['ua:user'];
 
