@@ -57,13 +57,6 @@ var username = my_hash['ua:user'];
 
 var safe_username = username.replace(/[^A-Za-z0-9]/g, '_');
 
-var token = new Date().getTime().toString(36);
-var unikey = [safe_username, process.pid, token].join(':');
-
-var nextid = [unikey, 'nextid'].join(':');
-var list = [unikey, 'list', ''].join(':');
-
-
 // start a new list to avoid collisions / race conditions
 function new_list() {
     notifybot.list = Math.uuid();
