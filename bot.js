@@ -5,6 +5,7 @@ var notifo = require('notifo');
 var redis = require('redis-client');
 var connect = require('connect');
 var spawn = require('child_process').spawn;
+var Log = require('log'), log = new Log(Log.WARNING);
 
 var api_keys = require(process.env.HOME + '/.apikeys.js');
 require('./Math.uuid.js');
@@ -21,7 +22,7 @@ function catcher(exitcode, callee) {
     try {
         callee();
     } catch(e) {
-        sys.puts(e);
+        log.error(e);
         process.exit(exitcode);
     }
 }
@@ -49,7 +50,7 @@ catcher(43, function() {
 // connect to redis if we can
 var r = redis.createClient();
 r.addListener('noconnection', function(){
-    sys.puts("No Redis?");
+    log.error("No Redis?");
     process.exit(42);
 });
 
@@ -104,7 +105,7 @@ function do_notify(x) {
     var uri = 'http://'+url_server+'/l/'+old_list;
 
     if (notify_user == undefined) {
-        sys.puts(uri);
+        log.info(uri);
     } else {
         if (notify_type == 'Notifo') {
             send_by_notifo(x, uri);
@@ -164,7 +165,7 @@ function reply_folder_list(a) {
     for(var i in a.children) {
         var v = a.children[i];
         flatten(v);
-        sys.puts("F "+v.name);
+        log.info("F "+v.name);
         f.push(v.name);
     }
     notifybot.emit('folders', f);
@@ -183,10 +184,10 @@ function reply_message_list(a) {
     r.smembers('user:'+auth+':subs', function(err, folders){
         buffer_to_strings(folders);
         var q = {}; for(var z in folders) { q[folders[z]] = 1 }
-        sys.puts(sys.inspect(q));
+        log.info(sys.inspect(q));
 
         if (q[a.foldername] == 1) {
-            sys.puts("post in a watched folder, "+a.foldername+", from "+a.fromname);
+            log.info("post in a watched folder, "+a.foldername+", from "+a.fromname);
             link = Math.uuid();
             a.link = link;
             r.rpush(notifybot.list, JSON.stringify(a), function(){});
@@ -208,7 +209,7 @@ function announce_message_add(a) {
 function cache_folders(f) {
     r.del('user:'+my_hash['auth:name']+':folders', function(){
         for(var i in f) {
-            sys.puts("CF "+f[i]);
+            log.info("CF "+f[i]);
             r.sadd('user:'+my_hash['auth:name']+':folders', f[i], function(){});
         }
     });
