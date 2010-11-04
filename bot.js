@@ -5,7 +5,11 @@ var notifo = require('notifo');
 var redis = require('redis-client');
 var connect = require('connect');
 var spawn = require('child_process').spawn;
-var Log = require('log'), log = new Log(Log.WARNING);
+
+// create our log as warning or $UANOTIFY_LEVEL
+var Log = require('log');
+var loglevel = process.env['UANOTIFY_LEVEL'] || 'warning';
+var log = new Log(loglevel);
 
 var api_keys = require(process.env.HOME + '/.apikeys.js');
 require('./Math.uuid.js');
@@ -22,7 +26,7 @@ function catcher(exitcode, callee) {
     try {
         callee();
     } catch(e) {
-        log.error(e);
+        log.critical(e);
         process.exit(exitcode);
     }
 }
@@ -50,8 +54,11 @@ catcher(43, function() {
 // connect to redis if we can
 var r = redis.createClient();
 r.addListener('noconnection', function(){
-    log.error("No Redis?");
+    log.critical("No Redis?");
     process.exit(42);
+});
+r.addListener('reconnecting', function(){
+    log.info("REDIS reconnecting");
 });
 
 var username = my_hash['ua:user'];
@@ -135,7 +142,7 @@ function periodic() {
     });
 }
 
-notifybot = new uaclient.UAClient;
+notifybot = new uaclient.UAClient(log);
 notifybot.id = 0
 notifybot.shadow = 256;
 
@@ -215,10 +222,24 @@ function cache_folders(f) {
     });
 }
 
+function log_levels() {
+    r.get('log:'+my_hash['auth:name']+':level', function(err, b_level) {
+        if (!err && b_level != undefined) {
+            var level = b_level.toString('utf8');
+            var new_level = Log[level.toUpperCase()];
+            if (new_level != log.level) {
+                log.warning('changing log level to '+level);
+                log.level = new_level;
+            }
+        }
+    });
+}
+
 notifybot.addListener("folders", cache_folders);
 notifybot.addListener("announce_message_add", announce_message_add);
 notifybot.addListener("reply_message_list", reply_message_list);
 notifybot.list = Math.uuid();
 
+setInterval(log_levels, 30*1000); // change log levels every 30 seconds
 setInterval(periodic, my_hash['notify:freq'] * 1000);
 notifybot.connect(my_hash['ua:user'], my_hash['ua:pass'], my_hash['ua:server'], my_hash['ua:port']);
