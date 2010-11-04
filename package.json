@@ -16,7 +16,7 @@
   "directories": { "lib": "./lib", "test": "./test" },
   "os": [ "linux", "darwin" ],
   "dependencies": {
-      "redis": ">=0.0.0",
+      "redis-client": ">=0.0.0",
       "connect": ">=0.0.0",
       "connect-auth": ">=0.0.0",
       "log": ">=0.0.0",
