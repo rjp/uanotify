@@ -1,7 +1,7 @@
 {
   "name": "uanotify",
   "description": "A UA notifying bot",
-  "version": "0.2.3",
+  "version": "0.3.4",
   "keywords": [ "ua", "node", "notifo", "redis-client", "uanotify" ],
   "author": "rjp <rjpartington@googlemail.com>",
   "contributors": [
@@ -16,7 +16,7 @@
   "directories": { "lib": "./lib", "test": "./test" },
   "os": [ "linux", "darwin" ],
   "dependencies": {
-      "redis": ">=0.0.0",
+      "redis-client": ">=0.0.0",
       "connect": ">=0.0.0",
       "connect-auth": ">=0.0.0",
       "log": ">=0.0.0",
