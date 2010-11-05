@@ -2,7 +2,7 @@ var jade = require('jade');
 var sys = require('sys');
 var uaclient = require('uaclient');
 var notifo = require('notifo');
-var redis = require('redis-client');
+var redisFactory = require('redis-node');
 var connect = require('connect');
 var spawn = require('child_process').spawn;
 require('./wordwrap.js');
@@ -53,12 +53,12 @@ catcher(43, function() {
 });
 
 // connect to redis if we can
-var r = redis.createClient();
-r.addListener('noconnection', function(){
+var redis = redisFactory.createClient();
+redis.addListener('noconnection', function(){
     log.critical("No Redis?");
     process.exit(42);
 });
-r.addListener('reconnecting', function(){
+redis.addListener('reconnecting', function(){
     log.info("REDIS reconnecting");
 });
 
@@ -161,9 +161,9 @@ function notify_list(e, x) {
 function periodic() {
     old_list = notifybot.list;
     // if we have items, send them to notify_list
-    r.llen(old_list, function(e, x) {
+    redis.llen(old_list, function(e, x) {
         if (x > 0) {
-            r.lrange(old_list, 0, -1, notify_list);
+            redis.lrange(old_list, 0, -1, notify_list);
         }
     });
 }
@@ -214,7 +214,7 @@ function reply_message_list(a) {
     if (my_hash['ua:markread'] == undefined || ! my_hash['ua:markread']) {
         notifybot.request('message_mark_unread', { messageid: a.message, crossfolder: 1 });
     }
-    r.smembers('user:'+auth+':subs', function(err, folders){
+    redis.smembers('user:'+auth+':subs', function(err, folders){
         buffer_to_strings(folders);
         var q = {}; for(var z in folders) { q[folders[z]] = 1 }
         log.info(sys.inspect(q));
@@ -223,8 +223,8 @@ function reply_message_list(a) {
             log.info("post in a watched folder, "+a.foldername+", from "+a.fromname);
             link = Math.uuid();
             a.link = link;
-            r.rpush(notifybot.list, JSON.stringify(a), function(){});
-            r.set(link, JSON.stringify(a), function(){});
+            redis.rpush(notifybot.list, JSON.stringify(a), function(){});
+            redis.set(link, JSON.stringify(a), function(){});
         }
     });
 }
@@ -240,16 +240,16 @@ function announce_message_add(a) {
 }
 
 function cache_folders(f) {
-    r.del('user:'+my_hash['auth:name']+':folders', function(){
+    redis.del('user:'+my_hash['auth:name']+':folders', function(){
         for(var i in f) {
             log.info("CF "+f[i]);
-            r.sadd('user:'+my_hash['auth:name']+':folders', f[i], function(){});
+            redis.sadd('user:'+my_hash['auth:name']+':folders', f[i], function(){});
         }
     });
 }
 
 function log_levels() {
-    r.get('log:'+my_hash['auth:name']+':level', function(err, b_level) {
+    redis.get('log:'+my_hash['auth:name']+':level', function(err, b_level) {
         if (!err && b_level != undefined) {
             var level = b_level.toString('utf8');
             var new_level = Log[level.toUpperCase()];
