@@ -2,7 +2,7 @@ var jade = require('jade');
 var sys = require('sys');
 var uaclient = require('uaclient');
 var notifo = require('notifo');
-var redis = require('redis-client');
+var redisFactory = require('redis-node');
 var connect = require('connect');
 var auth = require('connect-auth');
 var spawn = require('child_process').spawn;
@@ -14,7 +14,7 @@ var api_keys = require(process.env.HOME + '/.apikeys.js');
 
 var TooQuickSpawn = 5 * 60 * 1000; // 5 minutes
 
-var r = redis.createClient();
+var redis = redisFactory.createClient();
 var h = process.cwd();
 
 var config_json = fs.readFileSync(process.argv[2], 'utf8');
@@ -43,7 +43,7 @@ var ua_sessions = {};
 function authenticate(user, pass, success, failure) {
     log.info('pass is '+pass);
     log.info('getting the key auth:'+user);
-    r.get('auth:'+user, function(err, result) {
+    redis.get('auth:'+user, function(err, result) {
         var real_pass = result.toString('utf8');
         log.info('real pass is '+real_pass);
         if (pass == real_pass) {
@@ -175,7 +175,7 @@ function spawn_bot(user, reason) {
 }
 
 function spawn_bots(reason) {
-	r.smembers('active:users', function(err, users) {
+	redis.smembers('active:users', function(err, users) {
 	    debuffer_hash(users);
 	    for(var q in users) {
             spawn_bot(users[q], reason);
@@ -192,8 +192,8 @@ function get_user_info(auth, callback) {
         'notify:dest': '', 'notify:freq': 7200, 'ua:markread': 0
     };
     log.info('fetching the hash for user:'+auth);
-    r.sismember('active:users', auth, function(err, isactive) {
-    r.hgetall('user:'+auth, function(err,x){
+    redis.sismember('active:users', auth, function(err, isactive) {
+    redis.hgetall('user:'+auth, function(err,x){
         log.info(sys.inspect(x));
         debuffer_hash(x);
 
@@ -203,19 +203,19 @@ function get_user_info(auth, callback) {
         if (x == undefined || x['notify:type'] == undefined) {
             log.info("User doesn't exist in the store, creating a blank one");
             for(var z in blank_user) {
-                r.hset('user:'+auth, z, blank_user[z], function(){});
+                redis.hset('user:'+auth, z, blank_user[z], function(){});
             }
-            r.del('user:'+auth+':subs', function(){});
+            redis.del('user:'+auth+':subs', function(){});
             x = blank_user;
         }
         x['active'] = isactive;
 
-        r.smembers('user:'+auth+':folders', function(err, folders){
+        redis.smembers('user:'+auth+':folders', function(err, folders){
             debuffer_hash(folders);
             log.info(sys.inspect(folders));
             if (err == undefined) {
                 // now we need the subscribed folders
-                r.smembers('user:'+auth+':subs', function(err, subs){
+                redis.smembers('user:'+auth+':subs', function(err, subs){
                     if (err) { 
                         log.warning('ERROR '+err);
                         throw(err);
@@ -239,7 +239,7 @@ function get_user_info(auth, callback) {
 
 function app(app) {
     app.get('/m/:id', function(req, res){
-        r.get(req.params.id, function(err, x){
+        redis.get(req.params.id, function(err, x){
             if (err) { throw(err); }
             if (x != undefined) {
                 output_message(req, res, x);
@@ -251,7 +251,7 @@ function app(app) {
         console.log('return message '+req.params.id)
     });
     app.get('/l/:id', function(req, res){
-        r.lrange(req.params.id, 0, -1, function(err, x){
+        redis.lrange(req.params.id, 0, -1, function(err, x){
             if (err == undefined) {
                 output_links(req, res, x);
             }
@@ -277,11 +277,11 @@ function app(app) {
     app.post('/updatefolders', function(req,res){
         req.authenticate(['basic'], function(err, authx){
             var auth = req.getAuthDetails().user.username;
-            r.del('user:'+auth+':subs', function(){
+            redis.del('user:'+auth+':subs', function(){
                 for(var z in req.body) {
                     log.info("parameter "+z+" = "+req.body[z]);
                     if (z.substr(0,4) == 'sub_') {
-                        r.sadd('user:'+auth+':subs', req.body[z]);
+                        redis.sadd('user:'+auth+':subs', req.body[z]);
                     }
                 }
             });
@@ -301,7 +301,7 @@ function app(app) {
             hash['notify:freq'] = req.body.freq;
             hash['ua:markread'] = req.body.markread;
             for(var z in hash) {
-                r.hset('user:'+auth, z, hash[z], function(){});
+                redis.hset('user:'+auth, z, hash[z], function(){});
             }
             // stop any UA session they have running and start a new one
             if (ua_sessions[auth]) { 
@@ -309,10 +309,10 @@ function app(app) {
                 ua_sessions[auth].process.kill();
             } 
             if (req.body.active) {
-                r.sadd('active:users', auth, function(){});
+                redis.sadd('active:users', auth, function(){});
                 spawn_bot(auth, 'settings');
             } else {
-                r.srem('active:users', auth, function(){});
+                redis.srem('active:users', auth, function(){});
                 log.info("not spawning a new bot for "+hash['ua:user']);
             }
 
