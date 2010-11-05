@@ -8,6 +8,7 @@ var auth = require('connect-auth');
 var spawn = require('child_process').spawn;
 var fs = require('fs');
 var Log = require('log'), log = new Log(Log.WARNING);
+require('./wordwrap.js');
 
 var api_keys = require(process.env.HOME + '/.apikeys.js');
 
@@ -54,25 +55,6 @@ function authenticate(user, pass, success, failure) {
     });
 }
 
-// stolen from marak's node-mailer
-// http://github.com/Marak/node_mailer/blob/master/lib/node_mailer.js
-function wordwrap(str){
-    var m = 80;
-    var b = "\r\n";
-    var c = false;
-    var i, j, l, s, r;
-    str += '';
-    if (m < 1) {
-      return str;
-    }
-    for (i = -1, l = (r = str.split(/\r\n|\n|\r/)).length; ++i < l; r[i] += s) {
-      for(s = r[i], r[i] = ""; s.length > m; r[i] += s.slice(0, j) + ((s = s.slice(j)).length ? b : "")){
-        j = c == 2 || (j = s.slice(0, m + 1).match(/\S*(\s)?$/))[1] ? m : j.input.length - j[0].length || c == 1 && m || j.input.length + (j = s.slice(m).match(/^\S*/)).input.length;
-      }
-    }
-    return r.join("\n");
-}
-
 function output_message(req, res, x, t) {
     var template = t;
     if (t == undefined) { template = 'message.html'; } // default to the full page
@@ -87,7 +69,7 @@ function output_message(req, res, x, t) {
     jade.renderFile('message.html', { locals: {
         summary: summary, from: a.m_fromname, to: to,
         subject: a.m_subject, body: a.m_text,
-        wrapped: wordwrap(a.m_text)
+        wrapped: String.wordwrap(a.m_text)
         }}, function(err, html){
         res.end(html);
     });
@@ -118,6 +100,7 @@ function output_links(req, res, x) {
             m.flat_text = m.flat_text.substr(0,59) + '...';
         }
         m.to = (m.m_toname == undefined) ? '&nbsp;' : m.m_toname;
+        m.wrapped = String.wordwrap(m.text);
         posts.push(m);
     }
     log.info(sys.inspect(posts[0]));
