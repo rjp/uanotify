@@ -5,6 +5,7 @@ var notifo = require('notifo');
 var redis = require('redis-client');
 var connect = require('connect');
 var spawn = require('child_process').spawn;
+require('./wordwrap.js');
 
 // create our log as warning or $UANOTIFY_LEVEL
 var Log = require('log');
@@ -66,8 +67,15 @@ var username = my_hash['ua:user'];
 var safe_username = username.replace(/[^A-Za-z0-9]/g, '_');
 
 // start a new list to avoid collisions / race conditions
+// TODO this should pick up the existing list from redis
+// TODO this should just return the list name, not assign it
 function new_list() {
-    notifybot.list = Math.uuid();
+    // allow forcing the UUID for testing purposes
+    if (my_hash['force_uuid'] != undefined) {
+        return my_hash['force_uuid'];
+    } else {
+        return Math.uuid();
+    }
 }
 
 function buffer_to_strings(x) {
@@ -91,10 +99,28 @@ function send_by_notifo(x, uri) {
 
 function send_by_email(x, uri) {
     var boundary = Math.uuid();
-    jade.renderFile('email.txt', { locals: {
-        x: x, notify_user: notify_user, uri: uri,
-        boundary: boundary
-    }}, function(err, html) {
+    var posts = [];
+
+    // this should be refactored
+    for(var i in x) {
+        m = JSON.parse(x[i]);
+	    d = new Date(m.m_date * 1000);
+	    b = d.toLocaleString();
+	    c = b.substr(16,5) +', '+ b.substr(0,3) +' '+ b.substr(8,2) +'/' + ('00'+(1+d.getMonth())).substr(-2);
+        m.nicedate = c;
+        m.flat_text = m.m_text.replace(/\n/g,' &sect; ');
+        if (m.flat_text.length > 60) {
+            m.flat_text = m.flat_text.substr(0,59) + '...';
+        }
+        m.to = (m.m_toname == undefined) ? '&nbsp;' : m.m_toname;
+        m.wrapped = String.wordwrap(m.text);
+        posts.push(m);
+    }
+
+    var l = { posts: posts, notify_user: notify_user, uri: uri, boundary: boundary };
+
+    jade.renderFile('email.txt', { locals: l }, function(err, html) {
+        if (err) throw(err);
 		mail.message({
 		    from: 'UA Notify Bot <uanotify@frottage.org>',
 		    to: [notify_user],
@@ -129,7 +155,7 @@ function notify_list(e, x) {
         item = JSON.parse(x[i]);
     }
     do_notify(x);
-    new_list();
+    notifybot.list = new_list();
 }
 
 function periodic() {
@@ -238,7 +264,7 @@ function log_levels() {
 notifybot.addListener("folders", cache_folders);
 notifybot.addListener("announce_message_add", announce_message_add);
 notifybot.addListener("reply_message_list", reply_message_list);
-notifybot.list = Math.uuid();
+notifybot.list = new_list();
 
 setInterval(log_levels, 30*1000); // change log levels every 30 seconds
 setInterval(periodic, my_hash['notify:freq'] * 1000);
