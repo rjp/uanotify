@@ -80,7 +80,9 @@ function new_list() {
 
 function buffer_to_strings(x) {
     for(var i in x) {
-        x[i] = x[i].toString('utf8');
+        if ('buffer' == typeof x[i]) {
+            x[i] = x[i].toString('utf8');
+        }
     }
     return x;
 }
