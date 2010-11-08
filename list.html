@@ -5,21 +5,23 @@ html(lang="en")
   body
     table(border=1)
       tr
-        th Folder
         th Subject
         th From
         th To
         th Date
         th Body
-      - for (var post in posts)
+      - var old_folder = undefined;
+      - each post, index in posts
+        - if (old_folder != post.foldername)
+          tr
+            td(colspan:5, style:'folder') #{post.foldername}
         tr
-          td #{posts[post].foldername}
           td
-            - var a = '/m/'+posts[post].link;
-            - var to = posts[post].m_toname;
+            - var a = '/m/'+post.link;
+            - var to = post.m_toname;
             - var niceto = to ? to : '';
-            a(href: a) #{posts[post].m_subject}
-          td #{posts[post].m_fromname}
-          td #{posts[post].to}
-          td #{posts[post].nicedate}
-          td #{posts[post].flat_text}
+            a(href: a) #{post.m_subject}
+          td #{post.m_fromname}
+          td #{post.to}
+          td #{post.nicedate}
+          td #{post.flat_text}

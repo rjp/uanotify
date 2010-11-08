@@ -251,7 +251,7 @@ function app(app) {
         console.log('return message '+req.params.id)
     });
     app.get('/l/:id', function(req, res){
-        redis.lrange(req.params.id, 0, -1, function(err, x){
+        redis.zrange('sorted:'+req.params.id, 0, -1, function(err, x){
             if (err == undefined) {
                 output_links(req, res, x);
             }
