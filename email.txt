@@ -6,31 +6,47 @@
 | --#{boundary}
 | Content-Type: text/html; charset=UTF-8
 | 
+!!! default
 html
   head
     title #{posts.length} new messages
   body
-    table(border=1)
+    table
       tr
-        th Folder
-        th Subject
-        th From
-        th To
-        th Date
-      - for (var post in posts)
-        tr
-          td #{posts[post].foldername}
-          td
-            - var a = '/m/'+posts[post].link;
-            - var to = posts[post].m_toname;
-            - var niceto = to ? to : '';
-            a(href: a) #{posts[post].m_subject}
-          td #{posts[post].m_fromname}
-          td #{posts[post].to}
-          td #{posts[post].nicedate}
-        tr
-          td(colspan:5) 
-            pre #{posts[post].wrapped}
+        td
+        - for (var post in posts)
+          p
+          - var m_next = parseInt(post)+1
+          - var m_pre = parseInt(post)-1
+          - if (m_next < posts.length)
+            a(href:"#m"+m_next)
+              span &dArr;&nbsp;
+          - else
+            &bull;&nbsp;
+          - if (m_pre >= 0)
+            a(href:"#m"+m_pre)
+              span &uArr;&nbsp;
+          - else
+            &bull;&nbsp;
+          a(name:"m"+post)
+            span(style:"font-size:110%;font-weight:bold;color:#CC6600;font-family:arial;line-height:100%;")
+              #{posts[post].m_subject}
+          br
+          span(style:"font-size:75%")
+            | #{posts[post].foldername}
+            | &bull;
+            | #{posts[post].m_fromname}
+            - if (posts[post].m_toname != undefined)
+              | &raquo; #{posts[post].m_toname}
+          span(style:"font-size:75%;font-weight:normal;color:#666666;font-style:italic;font-family:arial;")
+            | #{posts[post].nicedate}
+          br
+          span(style:"padding:18pt")
+            | &nbsp;
+          br
+          span(style:"font-family:monospace;max-width:80ex")
+            | #{posts[post].wrapped}
+          hr
     a(href:uri) #{uri}
     br
     small UA Notify Bot says hello!

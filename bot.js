@@ -2,7 +2,7 @@ var jade = require('jade');
 var sys = require('sys');
 var uaclient = require('uaclient');
 var notifo = require('notifo');
-var redis = require('redis-client');
+var redisFactory = require('redis-node');
 var connect = require('connect');
 var spawn = require('child_process').spawn;
 require('./wordwrap.js');
@@ -53,12 +53,12 @@ catcher(43, function() {
 });
 
 // connect to redis if we can
-var r = redis.createClient();
-r.addListener('noconnection', function(){
+var redis = redisFactory.createClient();
+redis.addListener('noconnection', function(){
     log.critical("No Redis?");
     process.exit(42);
 });
-r.addListener('reconnecting', function(){
+redis.addListener('reconnecting', function(){
     log.info("REDIS reconnecting");
 });
 
@@ -74,13 +74,17 @@ function new_list() {
     if (my_hash['force_uuid'] != undefined) {
         return my_hash['force_uuid'];
     } else {
-        return Math.uuid();
+        var nl = Math.uuid();
+        redis.set('user:'+my_hash['auth:name']+':currentlist', nl, function(){});
+        return nl;
     }
 }
 
 function buffer_to_strings(x) {
     for(var i in x) {
-        x[i] = x[i].toString('utf8');
+        if ('buffer' == typeof x[i]) {
+            x[i] = x[i].toString('utf8');
+        }
     }
     return x;
 }
@@ -113,7 +117,8 @@ function send_by_email(x, uri) {
             m.flat_text = m.flat_text.substr(0,59) + '...';
         }
         m.to = (m.m_toname == undefined) ? '&nbsp;' : m.m_toname;
-        m.wrapped = String.wordwrap(m.text);
+        m.wrapped = String.wordwrap(m.text).replace(/\n\n/g, "<br/><br/>");
+
         posts.push(m);
     }
 
@@ -161,9 +166,9 @@ function notify_list(e, x) {
 function periodic() {
     old_list = notifybot.list;
     // if we have items, send them to notify_list
-    r.llen(old_list, function(e, x) {
+    redis.llen(old_list, function(e, x) {
         if (x > 0) {
-            r.lrange(old_list, 0, -1, notify_list);
+            redis.lrange(old_list, 0, -1, notify_list);
         }
     });
 }
@@ -210,11 +215,13 @@ function reply_message_list(a) {
     flatten(a);
     flatten(x, 'm_');
     extend(a, x);
+
+
     var auth = my_hash['auth:name'];
     if (my_hash['ua:markread'] == undefined || ! my_hash['ua:markread']) {
         notifybot.request('message_mark_unread', { messageid: a.message, crossfolder: 1 });
     }
-    r.smembers('user:'+auth+':subs', function(err, folders){
+    redis.smembers('user:'+auth+':subs', function(err, folders){
         buffer_to_strings(folders);
         var q = {}; for(var z in folders) { q[folders[z]] = 1 }
         log.info(sys.inspect(q));
@@ -223,8 +230,18 @@ function reply_message_list(a) {
             log.info("post in a watched folder, "+a.foldername+", from "+a.fromname);
             link = Math.uuid();
             a.link = link;
-            r.rpush(notifybot.list, JSON.stringify(a), function(){});
-            r.set(link, JSON.stringify(a), function(){});
+            var json = JSON.stringify(a);
+            redis.rpush(notifybot.list, json, function(){});
+            redis.set(link, json, function(){});
+
+            var us_folder = a.foldername.toUpperCase();
+            var c_folder = parseInt(us_folder, 36); // (c) UA
+            // this assumes that a.message is monotonically increasing
+            // (at least within a folder, if not globally) and that 
+            // it'll stay below 10,000,000 
+            var score = 10000000 * c_folder + a.message;
+            log.info("adding to sorted list, us_folder="+us_folder+", score="+score);
+            redis.zadd('sorted:'+notifybot.list, score, json, function(err,x){sys.puts("zadd.err = "+err)});
         }
     });
 }
@@ -240,16 +257,16 @@ function announce_message_add(a) {
 }
 
 function cache_folders(f) {
-    r.del('user:'+my_hash['auth:name']+':folders', function(){
+    redis.del('user:'+my_hash['auth:name']+':folders', function(){
         for(var i in f) {
             log.info("CF "+f[i]);
-            r.sadd('user:'+my_hash['auth:name']+':folders', f[i], function(){});
+            redis.sadd('user:'+my_hash['auth:name']+':folders', f[i], function(){});
         }
     });
 }
 
 function log_levels() {
-    r.get('log:'+my_hash['auth:name']+':level', function(err, b_level) {
+    redis.get('log:'+my_hash['auth:name']+':level', function(err, b_level) {
         if (!err && b_level != undefined) {
             var level = b_level.toString('utf8');
             var new_level = Log[level.toUpperCase()];
@@ -264,7 +281,14 @@ function log_levels() {
 notifybot.addListener("folders", cache_folders);
 notifybot.addListener("announce_message_add", announce_message_add);
 notifybot.addListener("reply_message_list", reply_message_list);
-notifybot.list = new_list();
+redis.get('user:'+my_hash['auth:name']+':currentlist', function(err, l){
+    if (err) throw(err);
+    if (l != undefined) {
+        notifybot.list = l;
+    } else {
+        notifybot.list = new_list();
+    }
+});
 
 setInterval(log_levels, 30*1000); // change log levels every 30 seconds
 setInterval(periodic, my_hash['notify:freq'] * 1000);

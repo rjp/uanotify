@@ -1,7 +1,7 @@
 {
   "name": "uanotify",
   "description": "A UA notifying bot",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "keywords": [ "ua", "node", "notifo", "redis-client", "uanotify" ],
   "author": "rjp <rjpartington@googlemail.com>",
   "contributors": [
