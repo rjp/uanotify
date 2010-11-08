@@ -229,8 +229,8 @@ function reply_message_list(a) {
             link = Math.uuid();
             a.link = link;
             var json = JSON.stringify(a);
-            r.rpush(notifybot.list, json, function(){});
-            r.set(link, json, function(){});
+            redis.rpush(notifybot.list, json, function(){});
+            redis.set(link, json, function(){});
 
             var us_folder = a.foldername.toUpperCase();
             var c_folder = parseInt(us_folder, 36); // (c) UA
