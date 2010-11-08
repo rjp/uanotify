@@ -74,7 +74,9 @@ function new_list() {
     if (my_hash['force_uuid'] != undefined) {
         return my_hash['force_uuid'];
     } else {
-        return Math.uuid();
+        var nl = Math.uuid();
+        redis.set('user:'+my_hash['auth:name']+':currentlist', nl, function(){});
+        return nl;
     }
 }
 
@@ -279,7 +281,14 @@ function log_levels() {
 notifybot.addListener("folders", cache_folders);
 notifybot.addListener("announce_message_add", announce_message_add);
 notifybot.addListener("reply_message_list", reply_message_list);
-notifybot.list = new_list();
+redis.get('user:'+my_hash['auth:name']+':currentlist', function(err, l){
+    if (err) throw(err);
+    if (l != undefined) {
+        notifybot.list = l;
+    } else {
+        notifybot.list = new_list();
+    }
+});
 
 setInterval(log_levels, 30*1000); // change log levels every 30 seconds
 setInterval(periodic, my_hash['notify:freq'] * 1000);
