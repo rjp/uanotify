@@ -130,25 +130,25 @@ function spawn_bot(user, reason) {
     if (ua_sessions[user] != undefined) { // we have a flag
         if (ua_sessions[user].process == undefined) { // did we just die?
             var since_last = now - ua_sessions[user].last;
-            log.warning(user+": time_check: "+since_last/1000+"s");
+            log.info(user+": time_check: "+since_last/1000+"s");
             if (since_last < TooQuickSpawn) {
-                log.warning(user+": too soon");
+                log.info(user+": too soon");
             } else {
-                log.warning(user+": time elapsed");
+                log.info(user+": time elapsed");
                 should_spawn = true;
             }
         } else {
-            log.warning(user+": alive");
+            log.info(user+": alive");
             ua_sessions[user].last = now; // record the last alive time
         }
     } else {
-        log.warning(user+": not alive");
+        log.info(user+": not alive");
         should_spawn = true;
     }
 
     // don't spawn 
     if (! should_spawn) { 
-        log.warning(user+": not spawning");
+        log.info(user+": not spawning");
         return; 
     }
 
