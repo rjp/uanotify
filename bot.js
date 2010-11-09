@@ -12,6 +12,11 @@ var Log = require('log');
 var loglevel = process.env['UANOTIFY_LEVEL'] || 'warning';
 var log = new Log(loglevel);
 
+process.on('uncaughtException', function(err) {
+    log.critical("uncaught:"+err);
+    process.exit(88);
+});
+
 var api_keys = require(process.env.HOME + '/.apikeys.js');
 require('./Math.uuid.js');
 
