@@ -72,8 +72,6 @@ var username = my_hash['ua:user'];
 var safe_username = username.replace(/[^A-Za-z0-9]/g, '_');
 
 // start a new list to avoid collisions / race conditions
-// TODO this should pick up the existing list from redis
-// TODO this should just return the list name, not assign it
 function new_list() {
     // allow forcing the UUID for testing purposes
     if (my_hash['force_uuid'] != undefined) {
