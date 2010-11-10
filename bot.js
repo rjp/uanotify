@@ -259,6 +259,7 @@ function announce_message_add(a) {
     notifybot.request('message_list', rp);
 }
 
+// TODO need a better way of updating the list without mass delete/insert
 function cache_folders(f) {
     redis.del('user:'+my_hash['auth:name']+':folders', function(){
         for(var i in f) {
@@ -272,7 +273,7 @@ function log_levels() {
     redis.get('log:'+my_hash['auth:name']+':level', function(err, b_level) {
         if (!err && b_level != undefined) {
             var level = b_level.toString('utf8');
-            var new_level = Log[level.toUpperCase()];
+            var new_level = Log[level.toUpperCase()]; // fudgy
             if (new_level != log.level) {
                 log.warning('changing log level to '+level);
                 log.level = new_level;
