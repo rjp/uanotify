@@ -110,7 +110,12 @@ function send_by_email(x, uri) {
 
     // this should be refactored
     for(var i in x) {
-        m = JSON.parse(x[i]);
+        try {
+            m = JSON.parse(x[i]);
+        } catch(e) {
+            log.critical("send_by_email: "+x[i]);
+            throw(e);
+        }
 	    d = new Date(m.m_date * 1000);
 	    b = d.toLocaleString();
 	    c = b.substr(16,5) +', '+ b.substr(0,3) +' '+ b.substr(8,2) +'/' + ('00'+(1+d.getMonth())).substr(-2);
