@@ -163,10 +163,11 @@ function spawn_bot(user, reason) {
         ua_sessions[user] = { process: child, last: now };
         // print whatever we get from the bot
         ua_sessions[user].process.stdout.on('data', function(data) {
-            if (data.match(/WARNING/i)) {
-                log.warning("<"+user+"> "+data);
+            var s_data = data.toString('utf8');
+            if (s_data.match(/WARNING/i)) {
+                log.warning("<"+user+"> "+s_data);
             } else {
-                log.info("<"+user+"> "+data);
+                log.info("<"+user+"> "+s_data);
             }
         });
         ua_sessions[user].process.on('exit', function(code, signal) {
