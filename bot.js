@@ -181,7 +181,13 @@ function do_notify(x) {
 function notify_list(e, x) {
     buffer_to_strings(x);
     for(var i in x) {
-        item = JSON.parse(x[i]);
+        try {
+            item = JSON.parse(x[i]);
+        } catch(e) {
+            log.critical(sys.inspect(e));
+            log.critical(sys.inspect(x[i]));
+            process.exit(99);
+        }
     }
     do_notify(x);
     notifybot.list = new_list();
