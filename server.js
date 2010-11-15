@@ -199,11 +199,15 @@ function spawn_bot(user, reason) {
         profile['ua:port'] = config.ua_port;
         profile['url:base'] = config.url_base;
         var child = spawn('node', ['bot.js',JSON.stringify(profile)],{cwd: h});
-        ua_sessions[user] = { process: child, last: now };
+        ua_sessions[user] = { process: child, last: now, outputbuffer: new Array };
         // print whatever we get from the bot
         ua_sessions[user].process.stdout.on('data', function(data) {
             var s_data = data.toString('utf8');
-            if (s_data.match(/WARNING/i)) {
+            ua_sessions[user].outputbuffer.push(s_data);
+            // if we get to 15 lines, start removing them from the front
+            var l = ua_sessions[user].outputbuffer.length;
+            if (l > 15) { ua_sessions[user].outputbuffer.splice(0, 1); }
+            if (s_data.match(/WARNING|CRITICAL/i)) {
                 log.warning("<"+user+"> "+s_data);
             } else {
                 log.info("<"+user+"> "+s_data);
@@ -212,6 +216,7 @@ function spawn_bot(user, reason) {
         ua_sessions[user].process.on('exit', function(code, signal) {
             if (code > 0) { 
                 log.warning('bot disappeared, code is '+code);
+                log.warning(sys.inspect(ua_sessions[user].outputbuffer));
             }
             ua_sessions[user].process = undefined;
         });
