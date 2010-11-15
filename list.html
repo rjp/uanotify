@@ -15,6 +15,7 @@ html(lang="en")
         - if (old_folder != post.foldername)
           tr
             td(colspan:5, style:'folder') #{post.foldername}
+        - old_folder = post.foldername
         tr
           td
             - var a = '/m/'+post.link;
