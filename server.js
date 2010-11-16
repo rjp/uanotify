@@ -40,6 +40,36 @@ log.info('Connect server listening on port '+config.port);
 // holds information about our child bots
 var ua_sessions = {};
 
+// temporary fix for the broken packet handling
+// inspired by a smart cheese
+function serial_mget (redis, list, final_callback) {
+    var ilist = new Array;
+    var xlist = new Array;
+    var lsize = list.length;
+    for(var i=0; i++; i<lsize) { xlist[i] = 1; }
+
+    var mid_callback = function(i, lsize) {
+        var q = i;
+        return function(err, val){
+	        if (err) final_callback(err, undefined);
+	        ilist.push(val);
+            xlist[q] = ilist.length - 1; // index of key in the list
+	        if (ilist.length == lsize) {
+                var nlist = new Array;
+                for(var i in xlist) {
+                    nlist[i] = ilist[xlist[i]]; // transpose keys
+                }
+	            final_callback(undefined, nlist);
+		    }
+        };
+    };
+    // perform all the lookups
+    // TODO does this need to be in a transaction?
+    for(var i in list) {
+        redis.get(list[i], mid_callback(i, lsize));
+    }
+}
+
 function authenticate(user, pass, success, failure) {
     log.info('pass is '+pass);
     log.info('getting the key auth:'+user);
@@ -77,7 +107,9 @@ function output_message(req, res, x, t) {
 
 function buffer_to_strings(x) {
     for(var i in x) {
-        x[i] = x[i].toString('utf8');
+        if (typeof x === "buffer") {
+            x[i] = x[i].toString('utf8');
+        }
     }
     return x;
 }
@@ -90,7 +122,12 @@ function output_links(req, res, x) {
 
     var posts = [];
     for(var i in x) {
+        try {
         m = JSON.parse(x[i]);
+        } catch(e) {
+            log.critical(sys.inspect(x[i]));
+            process.exit(42);
+        }
 	    d = new Date(m.m_date * 1000);
 	    b = d.toLocaleString();
 	    c = b.substr(16,5) +', '+ b.substr(0,3) +' '+ b.substr(8,2) +'/' + ('00'+(1+d.getMonth())).substr(-2);
@@ -114,7 +151,9 @@ function output_links(req, res, x) {
 
 function debuffer_hash(h) {
     for(var i in h) {
-        h[i] = h[i].toString('utf8');
+        if (typeof h[i] === 'string') {
+            h[i] = h[i].toString('utf8');
+        }
     }
 }
 
@@ -130,25 +169,25 @@ function spawn_bot(user, reason) {
     if (ua_sessions[user] != undefined) { // we have a flag
         if (ua_sessions[user].process == undefined) { // did we just die?
             var since_last = now - ua_sessions[user].last;
-            log.warning(user+": time_check: "+since_last/1000+"s");
+            log.info(user+": time_check: "+since_last/1000+"s");
             if (since_last < TooQuickSpawn) {
-                log.warning(user+": too soon");
+                log.info(user+": too soon");
             } else {
-                log.warning(user+": time elapsed");
+                log.info(user+": time elapsed");
                 should_spawn = true;
             }
         } else {
-            log.warning(user+": alive");
+            log.info(user+": alive");
             ua_sessions[user].last = now; // record the last alive time
         }
     } else {
-        log.warning(user+": not alive");
+        log.info(user+": not alive");
         should_spawn = true;
     }
 
     // don't spawn 
     if (! should_spawn) { 
-        log.warning(user+": not spawning");
+        log.info(user+": not spawning");
         return; 
     }
 
@@ -160,14 +199,24 @@ function spawn_bot(user, reason) {
         profile['ua:port'] = config.ua_port;
         profile['url:base'] = config.url_base;
         var child = spawn('node', ['bot.js',JSON.stringify(profile)],{cwd: h});
-        ua_sessions[user] = { process: child, last: now };
+        ua_sessions[user] = { process: child, last: now, outputbuffer: new Array };
         // print whatever we get from the bot
         ua_sessions[user].process.stdout.on('data', function(data) {
-            log.info("<"+user+"> "+data);
+            var s_data = data.toString('utf8');
+            ua_sessions[user].outputbuffer.push(s_data);
+            // if we get to 15 lines, start removing them from the front
+            var l = ua_sessions[user].outputbuffer.length;
+            if (l > 15) { ua_sessions[user].outputbuffer.splice(0, 1); }
+            if (s_data.match(/WARNING|CRITICAL/i)) {
+                log.warning("<"+user+"> "+s_data);
+            } else {
+                log.info("<"+user+"> "+s_data);
+            }
         });
         ua_sessions[user].process.on('exit', function(code, signal) {
             if (code > 0) { 
                 log.warning('bot disappeared, code is '+code);
+                log.warning(sys.inspect(ua_sessions[user].outputbuffer));
             }
             ua_sessions[user].process = undefined;
         });
@@ -253,7 +302,10 @@ function app(app) {
     app.get('/l/:id', function(req, res){
         redis.zrange('sorted:'+req.params.id, 0, -1, function(err, x){
             if (err == undefined) {
-                output_links(req, res, x);
+                serial_mget(redis, x, function(err, messages){
+                    if (err) throw(err);
+                    output_links(req, res, messages);
+                });
             }
         });
         console.log('return list '+req.params.id)
