@@ -11,7 +11,7 @@ html
   head
     title #{posts.length} new messages
   body
-    table
+    table(style:"width:85%")
       tr
         - var old_folder = undefined
         td
