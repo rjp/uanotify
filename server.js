@@ -117,8 +117,6 @@ function buffer_to_strings(x) {
 function output_links(req, res, x) {
     // convert our array of buffers to the JSON strings
     buffer_to_strings(x);
-    // we're returning HTML, let's tell the browser that
-    res.writeHead(200, { 'Content-Type': 'text/html' });
 
     var posts = [];
     for(var i in x) {
@@ -137,7 +135,7 @@ function output_links(req, res, x) {
             m.flat_text = m.flat_text.substr(0,59) + '...';
         }
         m.to = (m.m_toname == undefined) ? '&nbsp;' : m.m_toname;
-        m.wrapped = String.wordwrap(m.text);
+        m.wrapped = String.wordwrap(m.text).replace(/\n\s*\n/g, "<br/><br/>");
         posts.push(m);
     }
     log.info(sys.inspect(posts[0]));
@@ -315,12 +313,21 @@ function app(app) {
         console.log('return message '+req.params.id)
     });
     app.get('/l/:id', function(req, res){
+        // we're returning HTML, let's tell the browser that
+        res.writeHead(200, { 'Content-Type': 'text/html' });
         redis.zrange('sorted:'+req.params.id, 0, -1, function(err, x){
             if (err == undefined) {
-                serial_mget(redis, x, function(err, messages){
-                    if (err) throw(err);
-                    output_links(req, res, messages);
-                });
+                if (x.length > 0) {
+                    serial_mget(redis, x, function(err, messages){
+                        if (err) throw(err);
+                        output_links(req, res, messages);
+                    });
+                } else {
+                    jade.renderFile('empty.html', {}, function(e, h){
+                        if (e) throw(e);
+                        res.end(h)
+                    });
+                }
             }
         });
         console.log('return list '+req.params.id)
