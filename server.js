@@ -196,7 +196,7 @@ function spawn_bot(user, reason) {
     // T+N<300 bot is restarted by a settings update
     // T+300   bot is respawned without checking aliveness
     // now we have two bots running, stupidly
-    if (reason == 'respawn' && ua_sessions[auth].process) {
+    if (reason == 'respawn' && ua_sessions[auth] && ua_sessions[auth].process) {
         log.warning(user+": respawn abandoned, bot alive?");
         return;
     }
