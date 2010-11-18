@@ -11,21 +11,28 @@ html
   head
     title #{posts.length} new messages
   body
-    table
+    table(style:"width:85%")
       tr
+        - var old_folder = undefined
         td
         - for (var post in posts)
+          - if (old_folder != posts[post].foldername)
+            p(style:"width:100%;padding:6pt 1em 6pt 1em;background:#888;color:#000;font-weight:bold") 
+              #{posts[post].foldername}
+          - old_folder = posts[post].foldername
           p
           - var m_next = parseInt(post)+1
           - var m_pre = parseInt(post)-1
           - if (m_next < posts.length)
-            a(href:"#m"+m_next)
-              span &dArr;&nbsp;
+            a(href:"#m"+m_next,style:"text-decoration:none")
+              span &dArr;
+            span &nbsp;
           - else
             &bull;&nbsp;
           - if (m_pre >= 0)
-            a(href:"#m"+m_pre)
-              span &uArr;&nbsp;
+            a(href:"#m"+m_pre,style:"text-decoration:none")
+              span &uArr;
+            span &nbsp;
           - else
             &bull;&nbsp;
           a(name:"m"+post)

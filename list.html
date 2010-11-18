@@ -3,25 +3,46 @@ html(lang="en")
     title New UA Posts
     meta(name:'viewport', content:"width=device-width; maximum-scale=1.0; user-scalable=0;")
   body
-    table(border=1)
+    table(style:"max-width:85%")
       tr
-        th Subject
-        th From
-        th To
-        th Date
-        th Body
-      - var old_folder = undefined;
-      - each post, index in posts
-        - if (old_folder != post.foldername)
-          tr
-            td(colspan:5, style:'folder') #{post.foldername}
-        tr
-          td
-            - var a = '/m/'+post.link;
-            - var to = post.m_toname;
-            - var niceto = to ? to : '';
-            a(href: a) #{post.m_subject}
-          td #{post.m_fromname}
-          td #{post.to}
-          td #{post.nicedate}
-          td #{post.flat_text}
+        - var old_folder = undefined
+        td
+        - for (var post in posts)
+          - if (old_folder != posts[post].foldername)
+            p(style:"width:100%;padding:6pt 1em 6pt 1em;background:#888;color:#000;font-weight:bold") 
+              #{posts[post].foldername}
+          - old_folder = posts[post].foldername
+          p
+          - var m_next = parseInt(post)+1
+          - var m_pre = parseInt(post)-1
+          - if (m_next < posts.length)
+            a(href:"#m"+m_next,style:"text-decoration:none")
+              span &dArr;
+            span &nbsp;
+          - else
+            &bull;&nbsp;
+          - if (m_pre >= 0)
+            a(href:"#m"+m_pre,style:"text-decoration:none")
+              span &uArr;
+            span &nbsp;
+          - else
+            &bull;&nbsp;
+          a(href:"/m/"+posts[post].link,name:"m"+post)
+            span(style:"font-size:110%;font-weight:bold;color:#CC6600;font-family:arial;line-height:100%;")
+              #{posts[post].m_subject}
+          br
+          span(style:"font-size:75%")
+            | #{posts[post].foldername}
+            | &bull;
+            | #{posts[post].m_fromname}
+            - if (posts[post].m_toname != undefined)
+              | &raquo; #{posts[post].m_toname}
+          span(style:"font-size:75%;font-weight:normal;color:#666666;font-style:italic;font-family:arial;")
+            | #{posts[post].nicedate}
+          br
+          span(style:"padding:18pt")
+            | &nbsp;
+          br
+          span(style:"font-family:monospace;max-width:80ex")
+            | #{posts[post].wrapped}
+          hr
