@@ -191,6 +191,21 @@ function spawn_bot(user, reason) {
         return; 
     }
 
+    // if we're supposed to spawn because of a respawn...
+    // ...and the bot is now alive, log a warning and abort.
+    // this fixes the situation where
+    // T+0     bot crashes and goes into 5 minute respawn wait
+    // T+N<300 bot is restarted by a settings update
+    // T+300   bot is respawned without checking aliveness
+    // now we have two bots running, stupidly
+    if (reason == 'respawn' && ua_sessions[auth].process) {
+        log.warning(user+": respawn abandoned, bot alive?");
+        return;
+    }
+
+    // TODO figure out how to kill the existing bot - if any -
+    //      without causing race conditions, etc.
+
     get_user_info(user, function(folders, subs, profile, sublist) {
         var b = []; for(var z in folders) b.push(z); b.sort();
         log.warning("starting a new ["+reason+"] bot for "+user+"/"+profile['ua:user']);
