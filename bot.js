@@ -36,6 +36,7 @@ function catcher(exitcode, callee) {
     }
 }
 
+var notifybot; // our UA bot
 var my_json = process.argv[2];
 
 var my_hash;
@@ -126,6 +127,7 @@ function send_by_email(x, uri) {
 
     // this should be refactored
     for(var i in x) {
+        var m;
         try {
             m = JSON.parse(x[i]);
         } catch(e) {
@@ -180,15 +182,6 @@ function do_notify(x) {
 
 function notify_list(e, x) {
     buffer_to_strings(x);
-    for(var i in x) {
-        try {
-            item = JSON.parse(x[i]);
-        } catch(e) {
-            log.critical(sys.inspect(e));
-            log.critical(sys.inspect(x[i]));
-            process.exit(99);
-        }
-    }
     do_notify(x);
     notifybot.list = new_list();
 }
@@ -223,7 +216,7 @@ function extend(v1, v2) {
 // semi-flatten an EDF tree into a more usable JS object
 function flatten(q, prefix) {
     for(var i=0;i<q.children.length;i++){
-        if (prefix == undefined) {
+        if (prefix === undefined) {
             q[q.children[i].tag] = q.children[i].value
         } else {
             q[prefix + q.children[i].tag] = q.children[i].value
@@ -247,7 +240,7 @@ function reply_folder_list(a) {
 
 function reply_message_list(a) {
     // hoist the message part into the root with an m_ prefix
-    x = notifybot.getChild(a, 'message');
+    var x = notifybot.getChild(a, 'message');
     flatten(a);
     flatten(x, 'm_');
     extend(a, x);
@@ -258,7 +251,7 @@ function reply_message_list(a) {
     }
     // is this post in a folder we're uanotify-subscribed to?
     redis.sismember('user:'+auth+':subs', a.foldername, function(err, subscribed){
-        if (subscribed == 0) { return; } // do nothing, we're not subscribed here
+        if (subscribed === 0) { return; } // do nothing, we're not subscribed here
 
         log.info("post in a watched folder, "+a.foldername+", from "+a.fromname);
         a.link = Math.uuid();
