@@ -316,6 +316,6 @@ redis.get('user:'+my_hash['auth:name']+':currentlist', function(err, l){
     }
 });
 
-setInterval(log_levels, 30*1000); // change log levels every 30 seconds
+setInterval(log_levels, 90*1000); // change log levels every 30 seconds
 setInterval(periodic, my_hash['notify:freq'] * 1000);
 notifybot.connect(my_hash['ua:user'], my_hash['ua:pass'], my_hash['ua:server'], my_hash['ua:port']);
