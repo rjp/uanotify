@@ -256,36 +256,36 @@ function reply_message_list(a) {
     if (my_hash['ua:markread'] == undefined || ! my_hash['ua:markread']) {
         notifybot.request('message_mark_unread', { messageid: a.message, crossfolder: 1 });
     }
-    // is this post in a folder we're uanotify-subscribed to?
-    redis.sismember('user:'+auth+':subs', a.foldername, function(err, subscribed){
-        if (subscribed == 0) { return; } // do nothing, we're not subscribed here
 
-        log.info("post in a watched folder, "+a.foldername+", from "+a.fromname);
-        a.link = Math.uuid();
-        var json = JSON.stringify(a);
-//        redis.rpush(notifybot.list, json, function(){});
-        redis.set(a.link, json, function(){});
+    a.link = Math.uuid();
+    var json = JSON.stringify(a);
+    redis.set(a.link, json, function(){});
 
-        var us_folder = a.foldername.toUpperCase();
-//      var c_folder = parseInt(us_folder, 36); // (c) UA
-        var c_folder = a.folderid; // this is how UA sorts, we might as well keep it
-        // this assumes that a.message is monotonically increasing
-        // (at least within a folder, if not globally) and that 
-        // it'll stay below 10,000,000 (~ 30 years at current rate)
-        var score = 10000000 * c_folder + a.message;
-        log.info("adding to sorted list, us_folder="+us_folder+", score="+score);
-        redis.zadd('sorted:'+notifybot.list, score, a.link, function(err,x){sys.puts("zadd.err = "+err)});
-    });
+    var us_folder = a.foldername.toUpperCase();
+    var c_folder = a.folderid; // this is how UA sorts, we might as well keep it
+    // this assumes that a.message is monotonically increasing
+    // (at least within a folder, if not globally) and that 
+    // it'll stay below 10,000,000 (~ 30 years at current rate)
+    var score = 10000000 * c_folder + a.message;
+    log.info("adding to sorted list, us_folder="+us_folder+", score="+score);
+    redis.zadd('sorted:'+notifybot.list, score, a.link, function(err,x){sys.puts("zadd.err = "+err)});
 }
 
 function announce_message_add(a) {
     notifybot.flatten(a);
-    // default to requesting message bodies without marking them read
-    var rp = { messageid: a['messageid'], markread: 0 };
-    if (my_hash['ua:markread'] != undefined && my_hash['ua:markread']) {
-        delete rp['markread']; // absence makes the marking readier
-    }
-    notifybot.request('message_list', rp);
+    var auth = my_hash['auth:name'];
+
+    // is this post in a folder we're uanotify-subscribed to?
+    redis.sismember('user:'+auth+':subs', a.foldername, function(err, subscribed){
+        if (subscribed === 0) { return; } // do nothing, we're not subscribed here
+        log.info("post in a watched folder, "+a.foldername+", from "+a.fromname);
+	    // default to requesting message bodies without marking them read
+	    var rp = { messageid: a['messageid'], markread: 0 };
+	    if (my_hash['ua:markread'] != undefined && my_hash['ua:markread']) {
+	        delete rp['markread']; // absence makes the marking readier
+	    }
+	    notifybot.request('message_list', rp);
+    });
 }
 
 // TODO need a better way of updating the list without mass delete/insert
