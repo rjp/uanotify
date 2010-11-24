@@ -143,8 +143,10 @@ function send_by_email(x, uri) {
             m.flat_text = m.flat_text.substr(0,59) + '...';
         }
         m.to = (m.m_toname == undefined) ? '&nbsp;' : m.m_toname;
-        m.wrapped = String.wordwrap(m.text).replace(/\n\n/g, "<br/><br/>");
-
+        m.wrapped = String
+                    .wordwrap(m.text)
+                    .replace(/\n\n/g, "<br/><br/>")
+                    .replace(/\n>/g,  "<br/>&gt;");
         posts.push(m);
     }
 
