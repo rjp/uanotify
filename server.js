@@ -206,6 +206,12 @@ function spawn_bot(user, reason) {
 
     get_user_info(user, function(folders, subs, profile, sublist) {
         var b = []; for(var z in folders) b.push(z); b.sort();
+        // active:users got "corrupted" somehow but not in redis. uh?
+        // abort the whole shooting match if we get an undefined ua:name
+        if (profile['ua:user'] === undefined) {
+            log.critical("active:users corrupted again, undefined: "+user);
+            process.exit(99);
+        }
         log.warning("starting a new ["+reason+"] bot for "+user+"/"+profile['ua:user']);
         profile['auth:name'] = user;
         profile['ua:server'] = config.ua_host;
